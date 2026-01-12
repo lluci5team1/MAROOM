@@ -1,22 +1,24 @@
 import { View, Text, Image, StyleSheet } from "react-native";
 //import { Dimensions } from "react-native";
+import { Product } from "../../entities/product/type";
 
-export function ProductCard() {
+export function ProductCard({ product }: { product: Product }) {
   return (
     <View style={styles.shadowWrapper}>
       <View style={styles.card}>
         <Image
           source={{
-            uri: "https://www.livingspaces.com/globalassets/productassets/200000-299999/210000-219999/216000-216999/216800-216899/216868/216868_0.jpg?w=490&h=330&mode=pad",
+            uri: product.image,
           }}
           style={styles.image}
+          resizeMode="cover"
         />
         <View style={styles.content}>
-          <Text style={styles.title}>
-            Willow Creek II Brown Wood 2-Drawer 25” Nightstand
+          <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+            {product.name}
           </Text>
-          <Text style={styles.space}>Living Spaces</Text>
-          <Text style={styles.price}>$95.00</Text>
+          <Text style={styles.space}>{product.brand}</Text>
+          <Text style={styles.price}>${product.price}</Text>
         </View>
       </View>
     </View>
@@ -41,9 +43,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden", // safe here
   },
-  image: { flex: 1 },
-  content: { flex: 1, padding: 20, gap: 20 },
-  title: { fontSize: 20 },
-  space: { fontSize: 10 },
-  price: { fontSize: 20 },
+  image: {
+    width: "100%",
+    aspectRatio: 1, // tweak until it looks right
+    alignSelf: "flex-start",
+  },
+  content: { flex: 1, padding: 15, gap: 8 },
+  title: { fontSize: 20, fontFamily: "Poppins_400Medium" },
+  space: { fontSize: 13, fontFamily: "Poppins_400Regular" },
+  price: { fontSize: 27, fontFamily: "Poppins_400SemiBold" },
 });
