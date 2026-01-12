@@ -1,10 +1,11 @@
 import React from "react";
 import { View, Text, Image, Pressable, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FurnitureSwipe } from "../../widgets/swipe-card-stack";
+import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
 import { RoundButton } from "../../shared/ui/likeButton";
 import { BottomTabs } from "../../widgets/main-bottom-tabs";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { products } from "../../entities/product/product";
 
 export function HomePage() {
   return (
@@ -26,8 +27,8 @@ export function HomePage() {
               alignItems: "center",
             }}
           >
-            <View style={{}}>
-              <FurnitureSwipe />
+            <View style={{ flex: 1, width: "100%", maxHeight: 450 }}>
+              <SwipeCardDeck products={products} />
             </View>
             <View style={{ height: 50 }} />
             <View style={{ flexDirection: "row", gap: 60 }}>

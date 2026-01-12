@@ -1,59 +1,44 @@
-import { View, StyleSheet } from "react-native";
-import { SwipeableCard } from "../../features/swipe-logic/swipeableCard";
-import { ProductCard } from "../../shared/ui/ProductCard";
+// widgets/swipe-card-deck/ui/SwipeCardDeck.tsx
+import { View } from "react-native";
+import { useState } from "react";
+import { useSharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
+import { ProductCard } from "../../shared/ui/ProductCard";
+import { SwipeableCard } from "../../features/swipe-logic/swipeableCard";
 
-type SwipeCardStackProps = {
-  visibleProducts?: Product[];
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
+type Props = {
+  products: Product[];
 };
 
-export function SwipeCardStack({
-  visibleProducts = [],
-  onSwipeLeft,
-  onSwipeRight,
-}: SwipeCardStackProps) {
+export function SwipeCardDeck({ products }: Props) {
+  const [data, setData] = useState([...products, ...products]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const animatedValues = useSharedValue(0);
+
+  const MAX = 4;
+
   return (
-    <View style={styles.container}>
-      {visibleProducts.map((item: any, i: number) => {
-        const isTop = i === 0;
-        const card = <ProductCard product={item} />;
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      {data.map((item, index) => {
+        if (index < currentIndex || index > currentIndex + MAX) return null;
+
         return (
-          <View
-            key={item.id}
-            style={[
-              styles.card,
-              {
-                position: "absolute",
-                bottom: i * 30,
-                zIndex: 10 - i,
-                transform: [{ scale: 1 - i * 0.05 }],
-              },
-            ]}
+          <SwipeableCard
+            key={index}
+            index={index}
+            currentIndex={currentIndex}
+            animatedValues={animatedValues}
+            maxVisibleItem={MAX}
+            dataLength={data.length}
+            onSwiped={() => {
+              setCurrentIndex((i) => i + 1);
+              setData((prev) => [...prev, prev[currentIndex]]);
+            }}
           >
-            {isTop ? (
-              <SwipeableCard
-                onSwipeLeft={onSwipeLeft}
-                onSwipeRight={onSwipeRight}
-              >
-                {card}
-              </SwipeableCard>
-            ) : (
-              card
-            )}
-          </View>
+            <ProductCard product={item} />
+          </SwipeableCard>
         );
       })}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    height: 450, // match your card height
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  card: {},
-});

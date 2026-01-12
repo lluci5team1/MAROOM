@@ -1,49 +1,111 @@
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  runOnJS,
-} from "react-native-reanimated";
+// features/swipe-behavior/ui/SwipeableCard.tsx
+import { useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  interpolate,
+  runOnJS,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-const THRESHOLD = 120;
+type Props = {
+  index: number;
+  currentIndex: number;
+  animatedValues: SharedValue<number>;
+  maxVisibleItem: number;
+  dataLength: number;
+  onSwiped: () => void;
+  children: React.ReactNode;
+};
 
 export function SwipeableCard({
-  onSwipeLeft,
-  onSwipeRight,
+  index,
+  currentIndex,
+  animatedValues,
+  maxVisibleItem,
+  dataLength,
+  onSwiped,
   children,
-}: {
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
-  children: React.ReactNode;
-}) {
-  const x = useSharedValue(0);
+}: Props) {
+  const { width } = useWindowDimensions();
+  const translateX = useSharedValue(0);
+  const direction = useSharedValue(1);
 
   const pan = Gesture.Pan()
     .onUpdate((e) => {
-      x.value = e.translationX;
+      if (index !== currentIndex) return;
+
+      direction.value = e.translationX > 0 ? 1 : -1;
+      translateX.value = e.translationX;
+
+      animatedValues.value = interpolate(
+        Math.abs(e.translationX),
+        [0, width],
+        [index, index + 1]
+      );
     })
-    .onEnd(() => {
-      if (x.value > THRESHOLD) {
-        x.value = withSpring(500, {}, () => {
-          runOnJS(onSwipeRight)();
+    .onEnd((e) => {
+      if (index !== currentIndex) return;
+
+      if (Math.abs(e.translationX) > 150) {
+        translateX.value = withTiming(width * direction.value, {}, () => {
+          runOnJS(onSwiped)();
         });
-      } else if (x.value < -THRESHOLD) {
-        x.value = withSpring(-500, {}, () => {
-          runOnJS(onSwipeLeft)();
-        });
+        animatedValues.value = withTiming(currentIndex + 1);
       } else {
-        x.value = withSpring(0);
+        translateX.value = withTiming(0);
+        animatedValues.value = withTiming(currentIndex);
       }
     });
 
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }, { rotateZ: `${x.value / 20}deg` }],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    const currentItem = index === currentIndex;
 
+    const rotateZ = interpolate(
+      Math.abs(translateX.value),
+      [0, width],
+      [0, 30]
+    );
+
+    const scale = interpolate(
+      animatedValues.value,
+      [index - 1, index],
+      [0.9, 1]
+    );
+
+    const translateY = interpolate(
+      animatedValues.value,
+      [index - 1, index],
+      [-50, 0]
+    );
+    const opacity = interpolate(
+      animatedValues.value + maxVisibleItem,
+      [index, index + 1],
+      [0, 1]
+    );
+
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { scale: currentItem ? 1 : scale },
+        { translateY: currentItem ? 0 : translateY },
+        { rotateZ: currentItem ? `${direction.value * rotateZ}deg` : `0deg` },
+      ],
+      opacity: index < maxVisibleItem + currentIndex ? 1 : opacity,
+    };
+  });
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={style}>{children}</Animated.View>
+      <Animated.View
+        style={[
+          { position: "absolute", zIndex: dataLength - index },
+          animatedStyle,
+        ]}
+      >
+        {children}
+      </Animated.View>
     </GestureDetector>
   );
 }
