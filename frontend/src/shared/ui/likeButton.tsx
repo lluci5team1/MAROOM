@@ -24,8 +24,8 @@ export function RoundButton({ icon, onPress }: RoundButtonProps) {
 
 const styles = StyleSheet.create({
   shadowWrapper: {
-    width: 70,
-    height: 70,
+    width: 80,
+    height: 80,
     borderRadius: 50,
 
     shadowColor: "#000",

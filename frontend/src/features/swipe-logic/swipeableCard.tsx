@@ -1,6 +1,7 @@
 // features/swipe-behavior/ui/SwipeableCard.tsx
-import { useWindowDimensions } from "react-native";
+import { View, StyleSheet, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useState } from "react";
 import Animated, {
   interpolate,
   runOnJS,
@@ -17,7 +18,8 @@ type Props = {
   maxVisibleItem: number;
   dataLength: number;
   onSwiped: () => void;
-  children: React.ReactNode;
+  front: React.ReactNode;
+  back: React.ReactNode;
 };
 
 export function SwipeableCard({
@@ -27,11 +29,25 @@ export function SwipeableCard({
   maxVisibleItem,
   dataLength,
   onSwiped,
-  children,
+  front,
+  back,
 }: Props) {
   const { width } = useWindowDimensions();
   const translateX = useSharedValue(0);
   const direction = useSharedValue(1);
+  const [isFlipped, setIsFilpped] = useState(false);
+  const flipAnimation = useSharedValue(0);
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(250)
+    .onEnd(() => {
+      if (index !== currentIndex) return;
+
+      flipAnimation.value = withTiming(isFlipped ? 0 : 180, { duration: 300 });
+
+      runOnJS(setIsFilpped)(!isFlipped);
+    });
 
   const pan = Gesture.Pan()
     .onUpdate((e) => {
@@ -43,7 +59,7 @@ export function SwipeableCard({
       animatedValues.value = interpolate(
         Math.abs(e.translationX),
         [0, width],
-        [index, index + 1]
+        [index, index + 1],
       );
     })
     .onEnd((e) => {
@@ -66,28 +82,29 @@ export function SwipeableCard({
     const rotateZ = interpolate(
       Math.abs(translateX.value),
       [0, width],
-      [0, 30]
+      [0, 30],
     );
 
     const scale = interpolate(
       animatedValues.value,
       [index - 1, index],
-      [0.9, 1]
+      [0.9, 1],
     );
 
     const translateY = interpolate(
       animatedValues.value,
       [index - 1, index],
-      [-50, 0]
+      [-50, 0],
     );
     const opacity = interpolate(
       animatedValues.value + maxVisibleItem,
       [index, index + 1],
-      [0, 1]
+      [0, 1],
     );
 
     return {
       transform: [
+        { perspective: 1000 },
         { translateX: translateX.value },
         { scale: currentItem ? 1 : scale },
         { translateY: currentItem ? 0 : translateY },
@@ -96,16 +113,52 @@ export function SwipeableCard({
       opacity: index < maxVisibleItem + currentIndex ? 1 : opacity,
     };
   });
+
+  const frontStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(flipAnimation.value, [0, 180], [0, 180]);
+    return {
+      transform: [{ perspective: 1000 }, { rotateY: `${rotateY}deg` }],
+    };
+  });
+
+  const backStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(flipAnimation.value, [0, 180], [180, 360]);
+    return {
+      transform: [{ perspective: 1000 }, { rotateY: `${rotateY}deg` }],
+    };
+  });
+
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={Gesture.Simultaneous(pan, doubleTap)}>
       <Animated.View
         style={[
-          { position: "absolute", zIndex: dataLength - index },
+          styles.container,
+          { zIndex: dataLength - index },
           animatedStyle,
         ]}
       >
-        {children}
+        {/* FRONT */}
+        <Animated.View style={[frontStyle]}>{front}</Animated.View>
+
+        {/* BACK */}
+        <Animated.View style={[styles.back, styles.card, backStyle]}>
+          {back}
+        </Animated.View>
       </Animated.View>
     </GestureDetector>
   );
 }
+
+const styles = {
+  container: {
+    position: "absolute" as const,
+    width: 300,
+    height: 450,
+  },
+
+  card: {
+    position: "absolute" as const,
+    backfaceVisibility: "hidden" as const,
+  },
+  back: { transform: [{ rotateY: "180deg" }] },
+};

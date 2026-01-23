@@ -58,6 +58,11 @@ const config: ExpoConfig = {
     typedRoutes: true,
     reactCompiler: true,
   },
+  extra: {
+    router: {
+      root: "src/app",
+    },
+  },
 };
 
 export default config;

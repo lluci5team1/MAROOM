@@ -5,6 +5,7 @@ import { useSharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
 import { ProductCard } from "../../shared/ui/ProductCard";
 import { SwipeableCard } from "../../features/swipe-logic/swipeableCard";
+import { ProductCardBack } from "../../shared/ui/ProductCardBack";
 
 type Props = {
   products: Product[];
@@ -34,9 +35,9 @@ export function SwipeCardDeck({ products }: Props) {
               setCurrentIndex((i) => i + 1);
               setData((prev) => [...prev, prev[currentIndex]]);
             }}
-          >
-            <ProductCard product={item} />
-          </SwipeableCard>
+            front={<ProductCard product={item} />}
+            back={<ProductCardBack product={item} />}
+          ></SwipeableCard>
         );
       })}
     </View>
