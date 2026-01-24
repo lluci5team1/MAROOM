@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
 import { ProductCard } from "../../shared/ui/ProductCard";
-import { SwipeableCard } from "../../features/swipe-logic/swipeableCard";
+import { SwipeableCard } from "../../features/main-page/swipeable-card/swipeableCard";
 import { ProductCardBack } from "../../shared/ui/ProductCardBack";
+import { RoundButton } from "../../shared/ui/likeButton";
+import { icons } from "../../shared/assets/icons";
 
 type Props = {
   products: Product[];
@@ -37,6 +39,8 @@ export function SwipeCardDeck({ products }: Props) {
             }}
             front={<ProductCard product={item} />}
             back={<ProductCardBack product={item} />}
+            likeButton={<RoundButton icon={icons.heart} />}
+            diskLikeButton={<RoundButton icon={icons.X} />}
           ></SwipeableCard>
         );
       })}

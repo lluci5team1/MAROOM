@@ -27,15 +27,8 @@ export function HomePage() {
               alignItems: "center",
             }}
           >
-            <View style={{ flex: 1, width: "100%", maxHeight: 450 }}>
+            <View style={{ flex: 1, width: "100%", maxHeight: 600 }}>
               <SwipeCardDeck products={products} />
-            </View>
-            <View style={{ height: 50 }} />
-            <View style={{ flexDirection: "row", gap: 60 }}>
-              <RoundButton icon={require("../../shared/assets/icons/X.png")} />
-              <RoundButton
-                icon={require("../../shared/assets/icons/heart.png")}
-              />
             </View>
           </View>
 

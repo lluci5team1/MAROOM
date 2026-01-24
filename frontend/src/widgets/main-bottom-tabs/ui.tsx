@@ -1,5 +1,6 @@
 import { View, Image, Pressable, StyleSheet, Text } from "react-native";
 import { BOTTOM_TABS } from "../../shared/config/bottomTabs";
+import { useFonts, NotoSans_400Regular } from "@expo-google-fonts/noto-sans";
 /*import { Dimensions } from "react-native";
 
 
@@ -73,5 +74,5 @@ const styles = StyleSheet.create({
     height: 24,
     marginBottom: 4,
   },
-  label: {},
+  label: { fontFamily: "NotoSans_400Regular", fontSize: 12, color: "black" },
 });
