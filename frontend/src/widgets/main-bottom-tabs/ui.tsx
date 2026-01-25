@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "#D9EDF5",
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   button: {
     flex: 1,

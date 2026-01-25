@@ -9,7 +9,9 @@ export function useBottomTabs() {
   const tabs = BOTTOM_TABS.map((tab) => ({
     ...tab,
     onPress: () => {
+      console.log("tab pressed:", tab.key);
       setActiveKey(tab.key);
+      router.push(`/${tab.key}`);
     },
   }));
 

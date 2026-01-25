@@ -7,6 +7,7 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
+import { MainLayout } from "../pages/00_main-layout";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -16,5 +17,6 @@ export default function RootLayout() {
     Poppins_700Bold,
   });
   if (!fontsLoaded) return null;
-  return <Slot />;
+
+  return <MainLayout />;
 }

@@ -1,11 +1,4 @@
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ImageSourcePropType,
-} from "react-native";
-//import { Dimensions } from "react-native";
+import { View, Text, Image, StyleSheet, ImageSourcePropType, } from "react-native";
 
 type RoundButtonProps = {
   icon: ImageSourcePropType;
