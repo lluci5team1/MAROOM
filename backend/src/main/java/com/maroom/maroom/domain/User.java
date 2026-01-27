@@ -1,0 +1,50 @@
+package com.maroom.maroom.domain;
+
+import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(
+        name = "app_user",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "email")
+        }
+)
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String displayName;
+
+    @Column(nullable = false)
+    private String authProvider;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    protected User() {}
+
+    public User(String email, String displayName, String authProvider) {
+        this.email = email;
+        this.displayName = displayName;
+        this.authProvider = authProvider;
+    }
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = Instant.now();
+    }
+
+    public UUID getId() { return id; }
+    public String getEmail() { return email; }
+    public String getDisplayName() { return displayName; }
+    public String getAuthProvider() { return authProvider; }
+    public Instant getCreatedAt() { return createdAt; }
+}
