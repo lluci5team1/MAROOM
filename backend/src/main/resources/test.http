@@ -1,0 +1,15 @@
+@id = 5f553613-2943-45a7-9d71-cda238f8a6bd
+
+### create furniture item
+POST http://localhost:8080/api/furniture-items
+Content-Type: application/json
+
+{
+  "title": "White Drawer",
+  "category": "Storage",
+  "style": "Minimal",
+  "price": 120
+}
+
+### get furniture item
+GET http://localhost:8080/api/furniture-items/{{id}}
