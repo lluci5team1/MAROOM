@@ -1,11 +1,11 @@
 import { Gesture } from "react-native-gesture-handler";
 import {
   interpolate,
-  runOnJS,
   useSharedValue,
   withTiming,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 type Params = {
   enabled: boolean;
@@ -28,10 +28,11 @@ export function useSwipeGesture({
 }: Params) {
   const translateX = useSharedValue(0);
   const direction = useSharedValue(1);
+  const isSwiping = useSharedValue(false);
 
   const pan = Gesture.Pan()
     .onUpdate((e) => {
-      if (!enabled) return;
+      if (!enabled || isSwiping.value) return;
 
       direction.value = e.translationX > 0 ? 1 : -1;
       translateX.value = e.translationX;
@@ -43,11 +44,13 @@ export function useSwipeGesture({
       );
     })
     .onEnd((e) => {
-      if (!enabled) return;
+      if (!enabled || isSwiping.value) return;
 
       if (Math.abs(e.translationX) > 150) {
+        isSwiping.value = true;
         translateX.value = withTiming(width * direction.value, {}, () => {
-          runOnJS(onSwiped)();
+          isSwiping.value = false;
+          scheduleOnRN(onSwiped);
         });
         animatedValues.value = withTiming(currentIndex + 1);
       } else {
@@ -89,24 +92,32 @@ export function useSwipeGesture({
         { translateX: translateX.value },
         { scale: currentItem ? 1 : scale },
         { translateY: currentItem ? 0 : translateY },
-        { rotateZ: currentItem ? `${direction.value * rotateZ}deg` : `0deg` },
+        { rotateZ: currentItem ? `${direction.value * rotateZ}deg` : "0deg" },
       ],
       opacity,
     };
   });
 
   const swipeRight = () => {
+    if (!enabled || isSwiping.value) return;
+
+    isSwiping.value = true;
+
     translateX.value = withTiming(width, {}, () => {
-      if (!enabled) return;
-      runOnJS(onSwiped)();
+      isSwiping.value = false;
+      scheduleOnRN(onSwiped);
     });
     animatedValues.value = withTiming(currentIndex + 1);
   };
 
   const swipeLeft = () => {
+    if (!enabled || isSwiping.value) return;
+
+    isSwiping.value = true;
+
     translateX.value = withTiming(-width, {}, () => {
-      if (!enabled) return;
-      runOnJS(onSwiped)();
+      isSwiping.value = false;
+      scheduleOnRN(onSwiped);
     });
     animatedValues.value = withTiming(currentIndex + 1);
   };

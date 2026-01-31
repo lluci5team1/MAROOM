@@ -8,4 +8,6 @@ export const icons = {
   heart: require("./heart.png"),
   backButton: require("./backButton.png"),
   MAROOM_LOGO: require("./MAROOM_LOGO.png"),
+  X_White: require("./X_white.png"),
+  search: require("./search.png"),
 };
