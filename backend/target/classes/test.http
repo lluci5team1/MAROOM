@@ -1,0 +1,32 @@
+@id = 5f553613-2943-45a7-9d71-cda238f8a6bd
+@userId = ca75bce7-0cd3-441d-8869-ba8c4f82dd07
+
+### create furniture item
+POST http://localhost:8080/api/furniture-items
+Content-Type: application/json
+
+{
+  "title": "White Drawer",
+  "category": "Storage",
+  "style": "Minimal",
+  "price": 120
+}
+
+### get furniture item
+GET http://localhost:8080/api/furniture-items/{{id}}
+
+### Create User
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "email": "inha2@test.com",
+  "displayName": "Inha",
+  "authProvider": "LOCAL"
+}
+
+### List Users
+GET http://localhost:8080/users
+
+### Get User by id (위에서 나온 id로 바꿔)
+GET http://localhost:8080/users/{{userId}}
