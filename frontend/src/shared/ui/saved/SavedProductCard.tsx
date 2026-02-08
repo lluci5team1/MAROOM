@@ -1,9 +1,9 @@
 import { View, Text, Image, StyleSheet } from "react-native";
 //import { Dimensions } from "react-native";
-import { Product } from "../../entities/product/type";
-import { icons } from "../assets/icons";
+import { Product } from "../../../entities/product/type";
+import { icons } from "../../assets/icons";
 
-export function ProductCard({ product }: { product: Product }) {
+export function SavedProductCard({ product }: { product: Product }) {
   return (
     <View style={styles.shadowWrapper}>
       <View style={styles.card}>
@@ -31,49 +31,37 @@ export function ProductCard({ product }: { product: Product }) {
 
 const styles = StyleSheet.create({
   shadowWrapper: {
-    width: 300,
-    height: 450,
-    borderColor: "#000", // <- 추가함
+    width: 160,
+    height: 250,
+    borderColor: "#f8f8f8", // <- 추가함
+    borderWidth: 1,
     borderRadius: 20, // <-- 추가함
+    marginHorizontal: 16,
+    marginVertical: 3,
 
-    // shadow lives here
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 6,
+    //shadowColor: "#000",
+    //shadowOffset: { width: 0, height: 4 },
+    //shadowOpacity: 0.5,
+    //shadowRadius: 20,
+    //elevation: 3,
   },
   card: {
     flex: 1,
     position: "relative",
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f8f8",
     borderRadius: 20,
     overflow: "hidden", // safe here
   },
-  /*backButtonContainer: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    top: 12,
-    right: 12,
-    backgroundColor: "white",
-    zIndex: 20,
-    borderRadius: 100,
-  },
-  backButton: {
-    flex: 0.5,
-    paddingTop: 5,
-    justifyContent: "center",
-    aspectRatio: 1,
-    alignSelf: "center",
-  },*/
   image: {
     width: "100%",
     aspectRatio: 1, // tweak until it looks right
     alignSelf: "flex-start",
   },
-  content: { flex: 1, padding: 15, gap: 8 },
-  title: { fontSize: 20, fontFamily: "Poppins_400Medium" },
-  space: { fontSize: 13, fontFamily: "Poppins_400Regular" },
-  price: { fontSize: 27, fontFamily: "Poppins_400SemiBold" },
+  content: { flex: 1, padding: 12, gap: 1 },
+  title: { 
+    fontSize: 10, fontFamily: "Poppins_400SemiBold", 
+    textOverflow: "ellipsis", width: "100%",
+  },
+  space: { fontSize: 7, fontFamily: "Poppins_400Regular" },
+  price: { fontSize: 8, fontFamily: "Poppins_400SemiBold" },
 });

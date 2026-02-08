@@ -10,4 +10,5 @@ export const icons = {
   MAROOM_LOGO: require("./MAROOM_LOGO.png"),
   X_White: require("./X_white.png"),
   search: require("./search.png"),
+  filter: require("./filter.png"),
 };
