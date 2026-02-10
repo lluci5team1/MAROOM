@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface SavedItemRepository extends JpaRepository<SavedItem, UUID> {
     List<SavedItem> findBySavedListId(UUID savedListId);
+    boolean existsBySavedListIdAndFurnitureId(UUID savedListId, UUID furnitureId);
 }
