@@ -1,6 +1,6 @@
 // widgets/swipe-card-deck/ui/SwipeCardDeck.tsx
 import { View } from "react-native";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
 import { ProductCard } from "../../shared/ui/ProductCard";
@@ -13,10 +13,16 @@ type Props = {
   products: Product[];
 };
 
+type SwipeActions = {
+  left?: () => void;
+  right?: () => void;
+};
+
 export function SwipeCardDeck({ products }: Props) {
   const [data, setData] = useState([...products, ...products]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const animatedValues = useSharedValue(0);
+  const swipeActions = useRef<SwipeActions>({});
 
   const MAX = 4;
 
@@ -33,17 +39,41 @@ export function SwipeCardDeck({ products }: Props) {
             animatedValues={animatedValues}
             maxVisibleItem={MAX}
             dataLength={data.length}
+            registerActions={(actions) => {
+              swipeActions.current = actions;
+            }}
             onSwiped={() => {
               setCurrentIndex((i) => i + 1);
               setData((prev) => [...prev, prev[currentIndex]]);
             }}
             front={<ProductCard product={item} />}
             back={<ProductCardBack product={item} />}
-            likeButton={<RoundButton icon={icons.heart} />}
-            diskLikeButton={<RoundButton icon={icons.X} />}
-          ></SwipeableCard>
+          />
         );
       })}
+
+      {/* External buttons */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 40,
+          flexDirection: "row",
+          gap: 60,
+        }}
+      >
+        <RoundButton
+          icon={icons.X}
+          variant="dislike"
+          onPress={() => {
+            swipeActions.current.left?.();
+          }}
+        />
+        <RoundButton
+          icon={icons.heart}
+          variant="like"
+          onPress={() => swipeActions.current.right?.()}
+        />
+      </View>
     </View>
   );
 }

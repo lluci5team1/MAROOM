@@ -1,5 +1,5 @@
 @id = 5f553613-2943-45a7-9d71-cda238f8a6bd
-@userid = ca75bce7-0cd3-441d-8869-ba8c4f82dd07
+@userId = ca75bce7-0cd3-441d-8869-ba8c4f82dd07
 
 ### create furniture item
 POST http://localhost:8080/api/furniture-items

@@ -3,9 +3,13 @@ import { View, StyleSheet, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSwipeGesture } from "./swipe-logic/useSwipeGesture";
 import { useFlipGesture } from "./flip-logic/useFlipGesture";
-import { useState } from "react";
+import { useEffect } from "react";
 import Animated, { SharedValue } from "react-native-reanimated";
-import { LikeableButton } from "../likable-button/likeableButton";
+
+type SwipeActions = {
+  left: () => void;
+  right: () => void;
+};
 
 type Props = {
   index: number;
@@ -18,6 +22,7 @@ type Props = {
   back: React.ReactNode;
   likeButton?: React.ReactNode;
   diskLikeButton?: React.ReactNode;
+  registerActions?: (actions: SwipeActions) => void;
 };
 
 export function SwipeableCard(props: Props) {
@@ -36,10 +41,19 @@ export function SwipeableCard(props: Props) {
     onSwiped: props.onSwiped,
   });
 
+  // 🔑 Register swipe actions when this card becomes active
+  useEffect(() => {
+    if (enabled) {
+      props.registerActions?.({
+        left: swipeLeft,
+        right: swipeRight,
+      });
+    }
+  }, [enabled, swipeLeft, swipeRight]);
+
   return (
     <View style={styles.container}>
       <GestureDetector gesture={Gesture.Simultaneous(pan, doubleTap)}>
-        {/* Card */}
         <Animated.View
           style={[
             styles.cardContainer,
@@ -54,27 +68,6 @@ export function SwipeableCard(props: Props) {
           </Animated.View>
         </Animated.View>
       </GestureDetector>
-
-      {/* Buttons */}
-      {enabled && (
-        <View style={styles.buttons}>
-          <LikeableButton
-            variant="dislike"
-            handlePress={swipeLeft}
-            handleLongPress={() => {}}
-          >
-            {props.diskLikeButton}
-          </LikeableButton>
-
-          <LikeableButton
-            variant="like"
-            handlePress={swipeRight}
-            handleLongPress={() => {}}
-          >
-            {props.likeButton}
-          </LikeableButton>
-        </View>
-      )}
     </View>
   );
 }
@@ -91,19 +84,9 @@ const styles = {
     height: 450,
     top: 0,
   },
-
   card: {
     position: "absolute" as const,
     backfaceVisibility: "hidden" as const,
   },
   back: { transform: [{ rotateY: "180deg" }] },
-  buttons: {
-    position: "absolute" as const,
-    bottom: 0,
-    width: "100%" as const,
-    flexDirection: "row" as const,
-    justifyContent: "space-evenly" as const,
-    alignItems: "center" as const,
-    zIndex: 999,
-  },
 };

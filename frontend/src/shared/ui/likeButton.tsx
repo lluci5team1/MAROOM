@@ -1,17 +1,52 @@
-import { View, Text, Image, StyleSheet, ImageSourcePropType, } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ImageSourcePropType,
+  Pressable,
+} from "react-native";
+import { icons } from "../assets/icons";
 
 type RoundButtonProps = {
   icon: ImageSourcePropType;
+  variant: "like" | "dislike";
   onPress?: () => void;
+  onLongPress?: () => void;
 };
 
-export function RoundButton({ icon, onPress }: RoundButtonProps) {
+const COLORS = {
+  like: "#f43f5e", // ❤️ red
+  dislike: "#2a2a2a", // ❌ blue
+};
+
+export function RoundButton({
+  icon,
+  variant,
+  onPress,
+  onLongPress,
+}: RoundButtonProps) {
   return (
-    <View style={styles.shadowWrapper}>
-      <View style={styles.button}>
-        <Image source={icon} style={styles.image} resizeMode="contain" />
-      </View>
-    </View>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={styles.shadowWrapper}
+    >
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.button,
+            pressed && { backgroundColor: COLORS[variant] },
+          ]}
+        >
+          <Image
+            source={pressed && variant === "dislike" ? icons.X_White : icon}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        </View>
+      )}
+    </Pressable>
   );
 }
 

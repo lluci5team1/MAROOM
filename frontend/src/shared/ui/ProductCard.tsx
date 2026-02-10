@@ -33,12 +33,14 @@ const styles = StyleSheet.create({
   shadowWrapper: {
     width: 300,
     height: 450,
+    borderColor: "#000", // <- 추가함
+    borderRadius: 20, // <-- 추가함
 
     // shadow lives here
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 6,
+    shadowRadius: 20,
     elevation: 6,
   },
   card: {
