@@ -30,3 +30,18 @@ GET http://localhost:8080/users
 
 ### Get User by id (위에서 나온 id로 바꿔)
 GET http://localhost:8080/users/{{userId}}
+
+### Create Furniture Item (Full Features)
+POST http://localhost:8080/api/furniture-items
+Content-Type: application/json
+
+{
+  "title": "Modern Wooden Desk",
+  "category": "Desk",
+  "brand": "IKEA",
+  "style": "Minimalist",
+  "color": "White",
+  "price": 120,
+  "roomType": "Bedroom",
+  "productUrl": "https://ikea.com/example"
+}
