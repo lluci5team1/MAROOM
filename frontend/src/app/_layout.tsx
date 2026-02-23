@@ -13,7 +13,6 @@ import {
 } from "@expo-google-fonts/noto-sans";
 
 import { useAppFonts } from "../shared/assets/fonts";
-import { MainLayout } from "../pages/00_main-layout";
 
 export default function RootLayout() {
   const [googleFontsLoaded] = useFonts({
@@ -26,9 +25,14 @@ export default function RootLayout() {
   });
 
   const [appFontsLoaded] = useAppFonts();
+
   if (!googleFontsLoaded || !appFontsLoaded) {
-    return null; // or splash screen
+    return null;
   }
 
-  return <MainLayout />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Slot />
+    </GestureHandlerRootView>
+  );
 }

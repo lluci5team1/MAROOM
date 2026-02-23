@@ -9,6 +9,7 @@ import Animated, { SharedValue } from "react-native-reanimated";
 type SwipeActions = {
   left: () => void;
   right: () => void;
+  translateX: SharedValue<number>;
 };
 
 type Props = {
@@ -31,15 +32,16 @@ export function SwipeableCard(props: Props) {
 
   const { doubleTap, frontStyle, backStyle } = useFlipGesture(enabled);
 
-  const { pan, animatedStyle, swipeRight, swipeLeft } = useSwipeGesture({
-    enabled,
-    index: props.index,
-    currentIndex: props.currentIndex,
-    width,
-    animatedValues: props.animatedValues,
-    maxVisibleItem: props.maxVisibleItem,
-    onSwiped: props.onSwiped,
-  });
+  const { pan, animatedStyle, swipeRight, swipeLeft, translateX } =
+    useSwipeGesture({
+      enabled,
+      index: props.index,
+      currentIndex: props.currentIndex,
+      width,
+      animatedValues: props.animatedValues,
+      maxVisibleItem: props.maxVisibleItem,
+      onSwiped: props.onSwiped,
+    });
 
   // 🔑 Register swipe actions when this card becomes active
   useEffect(() => {
@@ -47,6 +49,7 @@ export function SwipeableCard(props: Props) {
       props.registerActions?.({
         left: swipeLeft,
         right: swipeRight,
+        translateX,
       });
     }
   }, [enabled, swipeLeft, swipeRight]);

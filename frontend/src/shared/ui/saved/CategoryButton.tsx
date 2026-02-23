@@ -1,11 +1,13 @@
-import { View, Text, Image, StyleSheet, ImageSourcePropType, } from "react-native";
+import { View, Text, Image, StyleSheet, ImageSourcePropType, Pressable, } from "react-native";
 
 
-export function CategoryButton({text, isSelected}: {text: string, isSelected: boolean}) {
+export function CategoryButton({text, isSelected, onPress}: {text: string, isSelected: boolean, onPress?: () => void}) {
   return (
-    <View style={[styles.outer, {backgroundColor: isSelected ?  "#D9EDF5" : "#EDECEC"}]}>
-      <Text style={{color: "#333", fontFamily: "Sansation_400Regular"}}>{text}</Text>
-    </View>
+    <Pressable onPress={onPress}>
+      <View style={[styles.outer, {backgroundColor: isSelected ?  "#D9EDF5" : "#EDECEC"}]}>
+        <Text style={{color: "#333", fontFamily: "Sansation_400Regular"}}>{text}</Text>
+      </View>
+    </Pressable>
   );
 }
 

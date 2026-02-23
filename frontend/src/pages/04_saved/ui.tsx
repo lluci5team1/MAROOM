@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Product } from "../../entities/product/type";
 import { fetchSavedProductsSample } from "../../shared/api/fetchSavedProductsSample";
@@ -9,6 +9,10 @@ import { SavedProductCardDummy } from "../../shared/ui/saved/SavedProductCardDum
 export function SavedPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [curCategory, setCurCategory] = useState("All furniture");
+
+  const furnitureTypes = ["All furniture", "Chair", "Step", "Lamp", "Bed", "Storage"];
+
 
   // saved products 불러오기
   useEffect(() => {
@@ -21,12 +25,26 @@ export function SavedPage() {
     load();
   }, []);
 
-  // 홀수일 때 마지막 dummy 추가
-  const displayProducts = [...products];
-  
+
+
+
+  const filteredProducts = useMemo(() => {
+    if (curCategory === "All furniture") return products;
+
+    return products.filter((product) =>
+      product.furnitureType.includes(curCategory)
+    );
+  }, [curCategory, products]);
+
+  // dummy 추가 (filtered 기준)
+  const displayProducts = [...filteredProducts];
   if (displayProducts.length % 2 !== 0) {
-    displayProducts.push({ id: "dummy" } as any); // 타입 맞추기 위해 any
+    displayProducts.push({ id: "dummy" } as any);
   }
+
+
+
+
 
   return (
     <View style={{ flex: 1, alignItems: "center" }} >
@@ -51,10 +69,11 @@ export function SavedPage() {
              horizontal
              showsHorizontalScrollIndicator={false}
              contentContainerStyle={styles.categoryBar}>
-              <CategoryButton text="All Furniture" isSelected={true} />
-              <CategoryButton text="Table" isSelected={false} />
-              <CategoryButton text="Storage" isSelected={false} />
-              <CategoryButton text="Sofa" isSelected={false} />
+              {
+                furnitureTypes.map((type) => (
+                  <CategoryButton key={type} text={type} isSelected={curCategory === type} onPress={()=>setCurCategory(type)}/>
+                ))
+              }
             </ScrollView>
 
             {/* 저장된 항목들 */}

@@ -1,7 +1,7 @@
 // widgets/swipe-card-deck/ui/SwipeCardDeck.tsx
 import { View } from "react-native";
 import { useMemo, useRef, useState } from "react";
-import { useSharedValue } from "react-native-reanimated";
+import { useSharedValue, SharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
 import { ProductCard } from "../../shared/ui/ProductCard";
 import { SwipeableCard } from "../../features/main-page/swipeable-card/swipeableCard";
@@ -16,13 +16,14 @@ type Props = {
 type SwipeActions = {
   left?: () => void;
   right?: () => void;
+  translateX: SharedValue<number>;
 };
 
 export function SwipeCardDeck({ products }: Props) {
   const [data, setData] = useState([...products, ...products]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const animatedValues = useSharedValue(0);
-  const swipeActions = useRef<SwipeActions>({});
+  const [swipeActions, setSwipeActions] = useState<SwipeActions | null>(null);
 
   const MAX = 4;
 
@@ -40,7 +41,7 @@ export function SwipeCardDeck({ products }: Props) {
             maxVisibleItem={MAX}
             dataLength={data.length}
             registerActions={(actions) => {
-              swipeActions.current = actions;
+              setSwipeActions(actions);
             }}
             onSwiped={() => {
               setCurrentIndex((i) => i + 1);
@@ -64,14 +65,15 @@ export function SwipeCardDeck({ products }: Props) {
         <RoundButton
           icon={icons.X}
           variant="dislike"
-          onPress={() => {
-            swipeActions.current.left?.();
-          }}
+          translateX={swipeActions?.translateX}
+          onPress={() => swipeActions?.left?.()}
         />
+
         <RoundButton
           icon={icons.heart}
           variant="like"
-          onPress={() => swipeActions.current.right?.()}
+          translateX={swipeActions?.translateX}
+          onPress={() => swipeActions?.right?.()}
         />
       </View>
     </View>

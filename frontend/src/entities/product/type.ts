@@ -4,4 +4,5 @@ export type Product = {
   brand: string;
   price: number;
   image: string;
+  furnitureType: string[];
 };

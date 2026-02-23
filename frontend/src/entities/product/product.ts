@@ -5,6 +5,7 @@ export const products: Product[] = [
     id: "1",
     name: 'Willow Creek II Brown Wood 2-Drawer 25" Nightstand',
     brand: "Living Spaces",
+    furnitureType: ["Drawer"],
     price: 95.0,
     image:
       "https://www.livingspaces.com/globalassets/productassets/200000-299999/210000-219999/216000-216999/216800-216899/216868/216868_0.jpg?w=820&h=553&mode=pad",
@@ -13,6 +14,7 @@ export const products: Product[] = [
     id: "2",
     name: "Floor lamp, dimmable/red",
     brand: "SOLVINDEN",
+    furnitureType: ["Lamp"],
     price: 49.99,
     image:
       "https://www.ikea.com/us/en/images/products/solvinden-floor-lamp-dimmable-red__1450687_pe990746_s5.jpg?f=xl",
@@ -21,6 +23,7 @@ export const products: Product[] = [
     id: "3",
     name: "Chair, brown-black",
     brand: "STEFAN",
+    furnitureType: ["Chair"],
     price: 35.0,
     image:
       "https://www.ikea.com/us/en/images/products/stefan-chair-brown-black__0727320_pe735593_s5.jpg?f=xl",
@@ -29,6 +32,7 @@ export const products: Product[] = [
     id: "4",
     name: "Wall-mount drop-leaf tbl w storage, white",
     brand: "NORBERG",
+    furnitureType: ["Storage"],
     price: 109.99,
     image:
       "https://www.ikea.com/us/en/images/products/norberg-wall-mount-drop-leaf-tbl-w-storage-white__1060307_pe849893_s5.jpg?f=xl",
@@ -37,6 +41,7 @@ export const products: Product[] = [
     id: "5",
     name: "Step stool, beech",
     brand: "BEKVÄM",
+    furnitureType: ["Step"],
     price: 59.99,
     image:
       "https://www.ikea.com/us/en/images/products/bekvaem-step-stool-beech__0987795_pe819439_s5.jpg?f=xl",
@@ -45,6 +50,7 @@ export const products: Product[] = [
     id: "6",
     name: "Daybed frame with 3 drawers, gray-green, Twin",
     brand: "HEMNES",
+    furnitureType: ["Drawer", "Frame"],
     price: 399.0,
     image:
       "https://www.ikea.com/us/en/images/products/hemnes-daybed-frame-with-3-drawers-gray-green__1471590_pe997296_s5.jpg?f=xl",
@@ -53,6 +59,7 @@ export const products: Product[] = [
     id: "7",
     name: "Floor lamp, dimmable/red",
     brand: "SOLVINDEN",
+    furnitureType: ["Lamp"],
     price: 49.99,
     image:
       "https://www.ikea.com/us/en/images/products/solvinden-floor-lamp-dimmable-red__1450687_pe990746_s5.jpg?f=xl",
@@ -61,6 +68,7 @@ export const products: Product[] = [
     id: "8",
     name: "Chair, brown-black",
     brand: "STEFAN",
+    furnitureType: ["Chair"],
     price: 35.0,
     image:
       "https://www.ikea.com/us/en/images/products/stefan-chair-brown-black__0727320_pe735593_s5.jpg?f=xl",
@@ -69,6 +77,7 @@ export const products: Product[] = [
     id: "9",
     name: "Wall-mount drop-leaf tbl w storage, white",
     brand: "NORBERG",
+    furnitureType: ["Storage"],
     price: 109.99,
     image:
       "https://www.ikea.com/us/en/images/products/norberg-wall-mount-drop-leaf-tbl-w-storage-white__1060307_pe849893_s5.jpg?f=xl",
@@ -77,6 +86,7 @@ export const products: Product[] = [
     id: "10",
     name: "Step stool, beech",
     brand: "BEKVÄM",
+    furnitureType: ["Step"],
     price: 59.99,
     image:
       "https://www.ikea.com/us/en/images/products/bekvaem-step-stool-beech__0987795_pe819439_s5.jpg?f=xl",
@@ -85,6 +95,7 @@ export const products: Product[] = [
     id: "11",
     name: "Daybed frame with 3 drawers, gray-green, Twin",
     brand: "HEMNES",
+    furnitureType: ["Drawer"],
     price: 399.0,
     image:
       "https://www.ikea.com/us/en/images/products/hemnes-daybed-frame-with-3-drawers-gray-green__1471590_pe997296_s5.jpg?f=xl",
@@ -93,6 +104,7 @@ export const products: Product[] = [
     id: "12",
     name: "Floor lamp, dimmable/red",
     brand: "SOLVINDEN",
+    furnitureType: ["Lamp"],
     price: 49.99,
     image:
       "https://www.ikea.com/us/en/images/products/solvinden-floor-lamp-dimmable-red__1450687_pe990746_s5.jpg?f=xl",
@@ -101,6 +113,7 @@ export const products: Product[] = [
     id: "13",
     name: "Chair, brown-black",
     brand: "STEFAN",
+    furnitureType: ["Chair"],
     price: 35.0,
     image:
       "https://www.ikea.com/us/en/images/products/stefan-chair-brown-black__0727320_pe735593_s5.jpg?f=xl",
@@ -109,6 +122,7 @@ export const products: Product[] = [
     id: "14",
     name: "Wall-mount drop-leaf tbl w storage, white",
     brand: "NORBERG",
+    furnitureType: ["Storage"],
     price: 109.99,
     image:
       "https://www.ikea.com/us/en/images/products/norberg-wall-mount-drop-leaf-tbl-w-storage-white__1060307_pe849893_s5.jpg?f=xl",
@@ -117,6 +131,7 @@ export const products: Product[] = [
     id: "15",
     name: "Step stool, beech",
     brand: "BEKVÄM",
+    furnitureType: ["Step"],
     price: 59.99,
     image:
       "https://www.ikea.com/us/en/images/products/bekvaem-step-stool-beech__0987795_pe819439_s5.jpg?f=xl",
@@ -125,6 +140,7 @@ export const products: Product[] = [
     id: "16",
     name: "Daybed frame with 3 drawers, gray-green, Twin",
     brand: "HEMNES",
+    furnitureType: ["Drawer"],
     price: 399.0,
     image:
       "https://www.ikea.com/us/en/images/products/hemnes-daybed-frame-with-3-drawers-gray-green__1471590_pe997296_s5.jpg?f=xl",
@@ -133,6 +149,7 @@ export const products: Product[] = [
     id: "17",
     name: "Floor lamp, dimmable/red",
     brand: "SOLVINDEN",
+    furnitureType: ["Lamp"],
     price: 49.99,
     image:
       "https://www.ikea.com/us/en/images/products/solvinden-floor-lamp-dimmable-red__1450687_pe990746_s5.jpg?f=xl",
@@ -141,6 +158,7 @@ export const products: Product[] = [
     id: "18",
     name: "Chair, brown-black",
     brand: "STEFAN",
+    furnitureType: ["Chair"],
     price: 35.0,
     image:
       "https://www.ikea.com/us/en/images/products/stefan-chair-brown-black__0727320_pe735593_s5.jpg?f=xl",
@@ -149,6 +167,7 @@ export const products: Product[] = [
     id: "19",
     name: "Wall-mount drop-leaf tbl w storage, white",
     brand: "NORBERG",
+    furnitureType: ["Storage"],
     price: 109.99,
     image:
       "https://www.ikea.com/us/en/images/products/norberg-wall-mount-drop-leaf-tbl-w-storage-white__1060307_pe849893_s5.jpg?f=xl",
@@ -157,6 +176,7 @@ export const products: Product[] = [
     id: "20",
     name: "Step stool, beech",
     brand: "BEKVÄM",
+    furnitureType: ["Step"],
     price: 59.99,
     image:
       "https://www.ikea.com/us/en/images/products/bekvaem-step-stool-beech__0987795_pe819439_s5.jpg?f=xl",
@@ -165,6 +185,7 @@ export const products: Product[] = [
     id: "21",
     name: "Daybed frame with 3 drawers, gray-green, Twin",
     brand: "HEMNES",
+    furnitureType: ["Frame", "Drawer"],
     price: 399.0,
     image:
       "https://www.ikea.com/us/en/images/products/hemnes-daybed-frame-with-3-drawers-gray-green__1471590_pe997296_s5.jpg?f=xl",
@@ -173,6 +194,7 @@ export const products: Product[] = [
     id: "22",
     name: "Floor lamp, dimmable/red",
     brand: "SOLVINDEN",
+    furnitureType: ["Lamp"],
     price: 49.99,
     image:
       "https://www.ikea.com/us/en/images/products/solvinden-floor-lamp-dimmable-red__1450687_pe990746_s5.jpg?f=xl",
@@ -181,6 +203,7 @@ export const products: Product[] = [
     id: "23",
     name: "Chair, brown-black",
     brand: "STEFAN",
+    furnitureType: ["Chair"],
     price: 35.0,
     image:
       "https://www.ikea.com/us/en/images/products/stefan-chair-brown-black__0727320_pe735593_s5.jpg?f=xl",
@@ -189,6 +212,7 @@ export const products: Product[] = [
     id: "24",
     name: "Wall-mount drop-leaf tbl w storage, white",
     brand: "NORBERG",
+    furnitureType: ["Storage"],
     price: 109.99,
     image:
       "https://www.ikea.com/us/en/images/products/norberg-wall-mount-drop-leaf-tbl-w-storage-white__1060307_pe849893_s5.jpg?f=xl",
@@ -197,6 +221,7 @@ export const products: Product[] = [
     id: "25",
     name: "Step stool, beech",
     brand: "BEKVÄM",
+    furnitureType: ["Step"],
     price: 59.99,
     image:
       "https://www.ikea.com/us/en/images/products/bekvaem-step-stool-beech__0987795_pe819439_s5.jpg?f=xl",

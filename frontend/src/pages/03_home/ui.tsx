@@ -24,7 +24,7 @@ export function HomePage() {
           alignItems: "center",
         }}
       >
-        <View style={{ flex: 1, width: "100%", maxHeight: 600 }}>
+        <View style={{ flex: 1, width: "100%", maxHeight: 600, top: 50 }}>
           <SwipeCardDeck products={products} />
         </View>
       </View>

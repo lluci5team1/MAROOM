@@ -122,5 +122,5 @@ export function useSwipeGesture({
     animatedValues.value = withTiming(currentIndex + 1);
   };
 
-  return { pan, animatedStyle, swipeRight, swipeLeft };
+  return { pan, animatedStyle, swipeRight, swipeLeft, translateX };
 }

@@ -11,4 +11,5 @@ export const icons = {
   X_White: require("./X_white.png"),
   search: require("./search.png"),
   filter: require("./filter.png"),
+  google: require("./google.png"),
 };
