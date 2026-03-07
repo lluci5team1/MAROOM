@@ -9,6 +9,7 @@ import {
 } from "@expo-google-fonts/poppins";
 import {
   NotoSans_400Regular,
+  NotoSans_600SemiBold,
   NotoSans_700Bold,
 } from "@expo-google-fonts/noto-sans";
 

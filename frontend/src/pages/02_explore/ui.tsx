@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FlatList,
   Pressable,
@@ -6,11 +6,14 @@ import {
   View,
   StyleSheet,
   Image,
+  Text,
 } from "react-native";
 import { Dimensions } from "react-native";
-import { products } from "../../entities/product/product";
+
 import { icons } from "../../shared/assets/icons";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
+import { fetchFurnitureItems } from "../../entities/product/api";
+import { Product } from "../../entities/product/type";
 
 export function ExplorePage() {
   const GAP = 2;
@@ -19,6 +22,33 @@ export function ExplorePage() {
   const ITEM_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // fetch products from backend
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchFurnitureItems();
+        setProducts(data);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -42,7 +72,7 @@ export function ExplorePage() {
         renderItem={({ item }) => (
           <Pressable>
             <Image
-              source={{ uri: item.image }}
+              source={{ uri: item.productUrl }}
               style={{
                 width: ITEM_SIZE,
                 height: ITEM_SIZE,
@@ -73,6 +103,12 @@ export function ExplorePage() {
 }
 
 const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -83,16 +119,19 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 12,
   },
+
   searchIcon: {
     width: 20,
     height: 20,
     tintColor: "#999",
     marginRight: 8,
   },
+
   searchInput: {
     flex: 1,
     fontSize: 14,
   },
+
   filterButton: {
     position: "absolute",
     right: 20,
@@ -106,6 +145,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 10,
   },
+
   filterIcon: {
     width: 28,
     height: 28,
