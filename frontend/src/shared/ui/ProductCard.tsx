@@ -12,14 +12,14 @@ export function ProductCard({ product }: { product: Product }) {
         </View>*/}
         <Image
           source={{
-            uri: product.image,
+            uri: product.productUrl,
           }}
           style={styles.image}
           resizeMode="cover"
         />
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
-            {product.name}
+            {product.title}
           </Text>
           <Text style={styles.space}>{product.brand}</Text>
           <Text style={styles.price}>${product.price}</Text>

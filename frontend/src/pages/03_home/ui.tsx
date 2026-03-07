@@ -1,13 +1,32 @@
-import React from "react";
-import { View, Text, Image, Pressable, TextInput } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useEffect, useState } from "react";
+import { View, Text } from "react-native";
 import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
-import { RoundButton } from "../../shared/ui/likeButton";
-import { BottomTabs } from "../../widgets/main-bottom-tabs";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { products } from "../../entities/product/product";
+import { fetchFurnitureItems } from "../../entities/product/api";
+import { Product } from "../../entities/product/type";
 
 export function HomePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchFurnitureItems();
+        setProducts(data);
+      } catch (error) {
+        console.error("Failed to fetch furniture:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
   return (
     <>
       <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
@@ -16,7 +35,6 @@ export function HomePage() {
         </Text>
       </View>
 
-      {/* Centered content */}
       <View
         style={{
           flex: 1,

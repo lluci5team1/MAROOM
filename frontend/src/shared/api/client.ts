@@ -1,6 +1,9 @@
+// shared/api/client.ts
 import axios from "axios";
 
 export const apiClient = axios.create({
-  baseURL: "http://YOUR_LOCAL_IP:3000/api", // or ENV
-  timeout: 10000,
+  baseURL: "http://11.27.18.87:8080",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });

@@ -1,8 +1,11 @@
 export type Product = {
-  id: string;
-  name: string;
+  id: string; // UUID → string in TypeScript
+  title: string;
+  category: string;
   brand: string;
-  price: number;
-  image: string;
-  furnitureType: string[];
+  style: string;
+  color: string;
+  price: number; // Integer → number
+  roomType: string;
+  productUrl: string;
 };
