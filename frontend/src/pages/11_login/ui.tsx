@@ -7,24 +7,52 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { icons } from "../../shared/assets/icons";
 import { useRouter } from "expo-router";
+import { login } from "../../entities/user/api";
+import { saveToken } from "../../shared/api/token";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(true);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const handleLogin = async () => {
+    if (!agree) {
+      Alert.alert("Please agree to the Terms & Conditions");
+      return;
+    }
+    if (!email || !password) {
+      Alert.alert("Please enter your email and password");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await login({ email, password });
+
+      await saveToken(res.token);
+      router.replace("/home");
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ?? "Login failed. Please try again.";
+      Alert.alert("Login Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.inner}>
-        {/* Logo */}
         <Text style={styles.logo}>MAROOM</Text>
 
-        {/* Email */}
         <Text style={styles.label}>Email</Text>
         <TextInput
           placeholder="Enter your mail"
@@ -32,9 +60,10 @@ export default function LoginScreen() {
           value={email}
           onChangeText={setEmail}
           style={styles.input}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
 
-        {/* Password */}
         <Text style={styles.label}>Password</Text>
         <TextInput
           placeholder="Enter your Password"
@@ -45,7 +74,6 @@ export default function LoginScreen() {
           style={styles.input}
         />
 
-        {/* Terms */}
         <View style={styles.checkboxRow}>
           <TouchableOpacity
             style={[styles.checkbox, agree && { backgroundColor: "#04B0FF" }]}
@@ -53,28 +81,36 @@ export default function LoginScreen() {
           >
             {agree && <Ionicons name="checkmark" size={14} color="white" />}
           </TouchableOpacity>
-
           <Text style={styles.termsText}>
             I agree with <Text style={styles.link}>Terms & Conditions</Text>
           </Text>
         </View>
 
-        {/* Login Button */}
         <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => router.replace("/home")}
+          style={[styles.loginButton, loading && { opacity: 0.7 }]}
+          onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.loginText}>LOGIN</Text>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.loginText}>LOGIN</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Divider */}
+        <TouchableOpacity
+          style={styles.signupButton}
+          onPress={() => router.push("/signup")}
+        >
+          <Text style={styles.signupText}>SIGN UP</Text>
+        </TouchableOpacity>
+
         <View style={styles.dividerRow}>
           <View style={styles.line} />
           <Text style={styles.or}>or</Text>
           <View style={styles.line} />
         </View>
 
-        {/* Social Buttons */}
         <TouchableOpacity style={styles.socialButton}>
           <Image source={icons.google} style={{ width: 18, height: 18 }} />
           <Text style={styles.socialText}>Continue with Google</Text>
@@ -90,7 +126,6 @@ export default function LoginScreen() {
           <Text style={styles.socialText}>Continue with Facebook</Text>
         </TouchableOpacity>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Contact</Text>
           <Text style={styles.footerText}> | </Text>
@@ -208,5 +243,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Poppins_400Regular",
     color: "#AEAEB2",
+  },
+  signupButton: {
+    borderWidth: 2,
+    borderColor: "#04B0FF",
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginTop: 10,
+    alignItems: "center",
+  },
+
+  signupText: {
+    color: "#04B0FF",
+    fontSize: 16,
+    fontFamily: "Poppins_600SemiBold",
   },
 });

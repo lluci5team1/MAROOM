@@ -1,59 +1,122 @@
+import { useState, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  runOnJS,
 } from "react-native-reanimated";
+import { PriceRange, PRICE_MIN, PRICE_MAX } from "../model/type";
 
-const MIN = 100;
-const MAX = 5000;
-const THUMB = 24;
+const THUMB = 22;
+const TRACK_H = 6;
+const TRACK_TOP = (THUMB - TRACK_H) / 2;
 
-export function PriceSlider() {
-  // shared values (UI thread)
-  const trackWidth = useSharedValue(0);
-  const x = useSharedValue(0);
+type Props = {
+  onChange?: (range: PriceRange) => void;
+};
 
-  // React state (JS thread)
-  const [displayPrice, setDisplayPrice] = useState(MIN);
+export function PriceSlider({ onChange }: Props) {
+  const containerWidth = useSharedValue(0);
+  const minX = useSharedValue(0);
+  const maxX = useSharedValue(0);
+  const [layoutDone, setLayoutDone] = useState(false);
 
-  // gesture
-  const pan = Gesture.Pan().onChange((e) => {
-    const maxX = Math.max(trackWidth.value - THUMB, 1);
+  const [minPrice, setMinPrice] = useState(PRICE_MIN);
+  const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
 
-    // move thumb
-    x.value = Math.max(0, Math.min(x.value + e.changeX, maxX));
+  const latestMin = useRef(PRICE_MIN);
+  const latestMax = useRef(PRICE_MAX);
 
-    // calculate price
-    const ratio = x.value / maxX;
-    const newPrice = Math.round(MIN + ratio * (MAX - MIN));
+  // Store gesture start positions to use translationX (avoids stale SharedValue reads)
+  const minStartX = useRef(0);
+  const maxStartX = useRef(0);
 
-    // sync to React state
-    runOnJS(setDisplayPrice)(newPrice);
-  });
+  const minPan = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-2, 2])
+    .failOffsetY([-5, 5])
+    .onBegin(() => {
+      minStartX.current = minX.value;
+    })
+    .onChange((e) => {
+      const effective = containerWidth.value - THUMB;
+      const newX = Math.max(
+        0,
+        Math.min(minStartX.current + e.translationX, maxX.value - THUMB)
+      );
+      minX.value = newX;
+      const price = Math.round(PRICE_MIN + (newX / Math.max(effective, 1)) * (PRICE_MAX - PRICE_MIN));
+      latestMin.current = price;
+      setMinPrice(price);
+      onChange?.({ min: price, max: latestMax.current });
+    });
 
-  // animated thumb style
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }],
+  const maxPan = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-2, 2])
+    .failOffsetY([-5, 5])
+    .onBegin(() => {
+      maxStartX.current = maxX.value;
+    })
+    .onChange((e) => {
+      const effective = containerWidth.value - THUMB;
+      const newX = Math.min(
+        effective,
+        Math.max(maxStartX.current + e.translationX, minX.value + THUMB)
+      );
+      maxX.value = newX;
+      const price = Math.round(PRICE_MIN + (newX / Math.max(effective, 1)) * (PRICE_MAX - PRICE_MIN));
+      latestMax.current = price;
+      setMaxPrice(price);
+      onChange?.({ min: latestMin.current, max: price });
+    });
+
+  const minThumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: minX.value }],
   }));
+
+  const maxThumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: maxX.value }],
+  }));
+
+  const fillStyle = useAnimatedStyle(() => ({
+    left: minX.value + THUMB / 2,
+    width: Math.max(0, maxX.value - minX.value),
+  }));
+
+  const maxLabel = maxPrice >= PRICE_MAX ? "$5000+" : `$${maxPrice}`;
 
   return (
     <View style={styles.container}>
-      {/* Price text */}
-      <Text style={styles.price}>${displayPrice}</Text>
+      <View style={styles.priceRow}>
+        <Text style={styles.priceText}>${minPrice}</Text>
+        <Text style={styles.priceText}>{maxLabel}</Text>
+      </View>
 
-      {/* Track */}
       <View
-        style={styles.track}
+        style={styles.sliderContainer}
         onLayout={(e) => {
-          trackWidth.value = e.nativeEvent.layout.width;
+          const w = e.nativeEvent.layout.width;
+          containerWidth.value = w;
+          maxX.value = w - THUMB;
+          maxStartX.current = w - THUMB;
+          setLayoutDone(true);
         }}
       >
-        <GestureDetector gesture={pan}>
-          <Animated.View style={[styles.thumb, thumbStyle]} />
-        </GestureDetector>
+        <View style={styles.trackBg} />
+        <Animated.View style={[styles.fill, fillStyle]} />
+
+        {layoutDone && (
+          <>
+            <GestureDetector gesture={minPan}>
+              <Animated.View style={[styles.thumb, minThumbStyle]} />
+            </GestureDetector>
+
+            <GestureDetector gesture={maxPan}>
+              <Animated.View style={[styles.thumb, maxThumbStyle]} />
+            </GestureDetector>
+          </>
+        )}
       </View>
     </View>
   );
@@ -61,25 +124,44 @@ export function PriceSlider() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 12,
   },
-  price: {
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
-    fontSize: 14,
-    color: "#666",
   },
-  track: {
-    height: 6,
+  priceText: {
+    fontSize: 13,
+    color: "#444",
+    fontFamily: "Sansation_400Regular",
+  },
+  sliderContainer: {
+    height: THUMB,
+    marginVertical: 8,
+  },
+  trackBg: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: TRACK_TOP,
+    height: TRACK_H,
     backgroundColor: "#D6EAF5",
-    borderRadius: 3,
-    marginTop: 10,
+    borderRadius: TRACK_H / 2,
+  },
+  fill: {
+    position: "absolute",
+    top: TRACK_TOP,
+    height: TRACK_H,
+    backgroundColor: "#018ABD",
+    borderRadius: TRACK_H / 2,
   },
   thumb: {
+    position: "absolute",
+    top: 0,
     width: THUMB,
     height: THUMB,
     borderRadius: THUMB / 2,
     backgroundColor: "#018ABD",
-    position: "absolute",
-    top: -9,
   },
 });

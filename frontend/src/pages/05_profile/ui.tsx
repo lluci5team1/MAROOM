@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 export function ProfilePage() {
   return (
@@ -28,6 +29,11 @@ export function ProfilePage() {
       <MenuItem icon="settings" text="Settings" />
       <MenuItem icon="bell" text="Notification" rightText="Allow" />
       <MenuItem icon="log-out" text="Log Out" />
+
+      {/* TEMP: 404 테스트 버튼 */}
+      <TouchableOpacity style={styles.tempButton} onPress={() => router.push("/test-404" as any)}>
+        <Text style={styles.tempButtonText}>[ TEMP ] Not Found 테스트</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -130,5 +136,19 @@ const styles = StyleSheet.create({
   rightText: {
     fontSize: 14,
     color: "#6b7280",
+  },
+
+  tempButton: {
+    marginTop: 32,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+  },
+
+  tempButtonText: {
+    fontSize: 13,
+    color: "#aaa",
   },
 });
