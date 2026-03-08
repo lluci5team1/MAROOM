@@ -26,15 +26,19 @@ public class User {
     @Column(nullable = false)
     private String authProvider;
 
+    @Column(nullable = false)
+    private String passwordHash;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     protected User() {}
 
-    public User(String email, String displayName, String authProvider) {
+    public User(String email, String displayName, String authProvider, String passwordHash) {
         this.email = email;
         this.displayName = displayName;
         this.authProvider = authProvider;
+        this.passwordHash = passwordHash;
     }
 
     @PrePersist
@@ -46,5 +50,6 @@ public class User {
     public String getEmail() { return email; }
     public String getDisplayName() { return displayName; }
     public String getAuthProvider() { return authProvider; }
+    public String getPasswordHash() { return passwordHash; }
     public Instant getCreatedAt() { return createdAt; }
 }
