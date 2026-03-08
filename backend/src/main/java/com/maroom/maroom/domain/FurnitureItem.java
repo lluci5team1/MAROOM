@@ -25,6 +25,7 @@ public class FurnitureItem {
     private Integer price;
     private String roomType;
     private String productUrl;
+    private String imageUrl;
 
     public FurnitureItem() {}
 
@@ -54,4 +55,7 @@ public class FurnitureItem {
 
     public String getProductUrl() { return productUrl; }
     public void setProductUrl(String productUrl) { this.productUrl = productUrl; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }
