@@ -18,7 +18,7 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    public record CreateUserRequest(String email, String displayName, String authProvider, String passwordHash) {}
+    public record CreateUserRequest(String email, String displayName, String authProvider) {}
 
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest req) {

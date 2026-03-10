@@ -25,7 +25,6 @@ public class Preference {
 
     public Preference() {}
 
-    // getters & setters
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
 

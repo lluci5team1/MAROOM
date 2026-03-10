@@ -10,4 +10,5 @@ public interface SessionTokenRepository extends JpaRepository<SessionToken, UUID
     Optional<SessionToken> findByToken(String token);
 
     void deleteByToken(String token);
+
 }

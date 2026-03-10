@@ -35,6 +35,7 @@ public class AuthController {
                 request.getPassword()
         );
     }
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
 
@@ -48,4 +49,5 @@ public class AuthController {
 
         return ResponseEntity.ok().body("Logged out successfully");
     }
+    
 }
