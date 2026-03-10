@@ -2,19 +2,43 @@
 import { apiClient } from "../../shared/api/client";
 import { Product } from "./type";
 
-export async function fetchFurnitureItemsTEMP(): Promise<Product[]> {
-  return fetchFurnitureItems();
-}
-
-export async function searchProductTEMP(query: string): Promise<Product[]> {
-  const q = query.trim().toLowerCase();
-  const items = await fetchFurnitureItems();
-  if (!q) return items;
-  return items.filter((p) => p.title.toLowerCase().includes(q));
-}
-
 export async function fetchFurnitureItems(): Promise<Product[]> {
   const res = await apiClient.get("/api/furniture-items");
+  return res.data;
+}
+
+type FurnitureSearchParams = {
+  q?: string;
+  brand?: string;
+  category?: string[];
+  roomType?: string[];
+  color?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
+};
+
+export async function searchFurnitureItems(
+  params: FurnitureSearchParams,
+): Promise<Product[]> {
+  const query = new URLSearchParams();
+
+  if (params.q?.trim()) query.append("q", params.q.trim());
+  if (params.brand?.trim()) query.append("brand", params.brand.trim());
+  params.category?.forEach((value) => query.append("category", value));
+  params.roomType?.forEach((value) => query.append("roomType", value));
+  params.color?.forEach((value) => query.append("color", value));
+  if (params.minPrice != null) query.append("minPrice", String(params.minPrice));
+  if (params.maxPrice != null) query.append("maxPrice", String(params.maxPrice));
+  if (params.sortBy?.trim()) query.append("sortBy", params.sortBy.trim());
+
+  const queryString = query.toString();
+  const requestUrl = `/api/furniture-items/search?${queryString}`;
+  console.log("[ExploreFilter] request params:", params);
+  console.log("[ExploreFilter] request url:", requestUrl);
+
+  const res = await apiClient.get(requestUrl);
+  console.log("[ExploreFilter] response count:", Array.isArray(res.data) ? res.data.length : -1);
   return res.data;
 }
 

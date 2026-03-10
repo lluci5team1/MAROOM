@@ -109,36 +109,12 @@ export function SavedPage() {
                 ) : (
                   <SavedProductCard
                     product={item}
-                    onPress={() => {
-                      // #region agent log
-                      fetch(
-                        "http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            "X-Debug-Session-Id": "1e43da",
-                          },
-                          body: JSON.stringify({
-                            sessionId: "1e43da",
-                            runId: "route-debug-1",
-                            hypothesisId: "H1",
-                            location: "pages/04_saved/ui.tsx:onPressCard",
-                            message: "saved card pressed",
-                            data: {
-                              itemId: item.id,
-                              pushPathname: "/product/[id]",
-                            },
-                            timestamp: Date.now(),
-                          }),
-                        },
-                      ).catch(() => {});
-                      // #endregion
+                    onPress={() =>
                       router.push({
                         pathname: "/(main)/[id]",
                         params: { id: item.id },
-                      });
-                    }}
+                      })
+                    }
                   />
                 )
               }

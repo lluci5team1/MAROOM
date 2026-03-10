@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { icons } from "../../../shared/assets/icons";
 import { FilterRow } from "./FilterRow";
 import { PriceSlider } from "./PriceSlider";
@@ -54,6 +54,7 @@ function formatMultiSelected(values: string[]): string | undefined {
 }
 
 export function FilterModal({ visible, onClose, onApply }: Props) {
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER);
   const [activeSection, setActiveSection] = useState<Section>(null);
   const [brandQuery, setBrandQuery] = useState("");
@@ -85,7 +86,9 @@ export function FilterModal({ visible, onClose, onApply }: Props) {
       const exists = current.includes(value);
       return {
         ...prev,
-        [key]: exists ? current.filter((v) => v !== value) : [...current, value],
+        [key]: exists
+          ? current.filter((v) => v !== value)
+          : [...current, value],
       };
     });
   }
@@ -118,201 +121,226 @@ export function FilterModal({ visible, onClose, onApply }: Props) {
     <Modal
       visible={visible}
       animationType="slide"
+      statusBarTranslucent
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={handleClose} style={styles.closeButton}>
-            {activeSection !== null ? (
-              <Text style={styles.backText}>‹</Text>
-            ) : (
-              <Text style={styles.closeText}>✕</Text>
-            )}
-          </Pressable>
+        <SafeAreaView
+          style={[
+            styles.safeArea,
+            {
+              paddingTop: Math.max(insets.top, 16),
+              paddingBottom: Math.max(insets.bottom, 24),
+            },
+          ]}
+          edges={[]}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable onPress={handleClose} style={styles.closeButton}>
+              {activeSection !== null ? (
+                <Text style={styles.backText}>‹</Text>
+              ) : (
+                <Text style={styles.closeText}>✕</Text>
+              )}
+            </Pressable>
 
-          {/* Centered title - absolutely positioned so it doesn't shift */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            <View style={styles.titleCenter}>
-              <Text style={styles.title}>Filter</Text>
+            {/* Centered title - absolutely positioned so it doesn't shift */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              <View style={styles.titleCenter}>
+                <Text style={styles.title}>Filter</Text>
+              </View>
             </View>
+
+            <Pressable onPress={clearAll}>
+              <Text style={styles.clear}>Clear All</Text>
+            </Pressable>
           </View>
 
-          <Pressable onPress={clearAll}>
-            <Text style={styles.clear}>Clear All</Text>
-          </Pressable>
-        </View>
-
-        {/* Main screen */}
-        {activeSection === null && (
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            <FilterRow
-              label="Brand"
-              selected={filter.brand}
-              onPress={() => setActiveSection("brand")}
-            />
-            <FilterRow
-              label="Category"
-              selected={formatMultiSelected(filter.category)}
-              onPress={() => setActiveSection("category")}
-            />
-            <FilterRow
-              label="Color"
-              selected={formatMultiSelected(filter.color)}
-              onPress={() => setActiveSection("color")}
-            />
-            <FilterRow
-              label="Sort By"
-              selected={getSortLabel(filter.sortBy)}
-              onPress={() => setActiveSection("sortBy")}
-            />
-            <View style={styles.priceSection}>
-              <Text style={styles.priceTitle}>Price Range</Text>
-              <PriceSlider onChange={handlePriceChange} />
-            </View>
-          </ScrollView>
-        )}
-
-        {/* Brand detail */}
-        {activeSection === "brand" && (
-          <>
-            <Text style={styles.sectionTitle}>
-              {SECTION_LABELS.brand}
-            </Text>
-            <View style={styles.searchBar}>
-              <Image source={icons.search} style={styles.searchIconImg} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search"
-                placeholderTextColor="#999"
-                value={brandQuery}
-                onChangeText={setBrandQuery}
+          {/* Main screen */}
+          {activeSection === null && (
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <FilterRow
+                label="Brand"
+                selected={filter.brand}
+                onPress={() => setActiveSection("brand")}
               />
-            </View>
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              <View style={styles.brandGrid}>
-                {filteredBrands.map((brand) => (
-                  <Pressable
-                    key={brand}
-                    style={[
-                      styles.brandItem,
-                      { width: brandItemWidth },
-                      filter.brand === brand && styles.brandItemSelected,
-                    ]}
-                    onPress={() => selectBrand(brand)}
-                  >
-                    <View
-                      style={[
-                        styles.brandImageBox,
-                        { width: brandItemWidth, height: brandItemWidth },
-                        filter.brand === brand && styles.brandImageBoxSelected,
-                      ]}
-                    >
-                      <Image
-                        source={{ uri: BRAND_IMAGES[brand] }}
-                        style={styles.brandImage}
-                        resizeMode="cover"
-                      />
-                      {filter.brand === brand && (
-                        <View style={styles.brandCheckOverlay}>
-                          <Text style={styles.brandCheckMark}>✓</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        styles.brandName,
-                        filter.brand === brand && styles.brandNameSelected,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {brand}
-                    </Text>
-                  </Pressable>
-                ))}
+              <FilterRow
+                label="Category"
+                selected={formatMultiSelected(filter.category)}
+                onPress={() => setActiveSection("category")}
+              />
+              <FilterRow
+                label="Color"
+                selected={formatMultiSelected(filter.color)}
+                onPress={() => setActiveSection("color")}
+              />
+              <FilterRow
+                label="Sort By"
+                selected={getSortLabel(filter.sortBy)}
+                onPress={() => setActiveSection("sortBy")}
+              />
+              <View style={styles.priceSection}>
+                <Text style={styles.priceTitle}>Price Range</Text>
+                <PriceSlider onChange={handlePriceChange} />
               </View>
             </ScrollView>
-          </>
-        )}
+          )}
 
-        {/* Category detail */}
-        {activeSection === "category" && (
-          <>
-            <Text style={styles.sectionTitle}>{SECTION_LABELS.category}</Text>
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {FILTER_OPTIONS.categories.map((cat) => (
-                <CheckboxRow
-                  key={cat}
-                  label={cat}
-                  checked={filter.category.includes(cat)}
-                  onPress={() => selectMultiple("category", cat)}
+          {/* Brand detail */}
+          {activeSection === "brand" && (
+            <>
+              <Text style={styles.sectionTitle}>{SECTION_LABELS.brand}</Text>
+              <View style={styles.searchBar}>
+                <Image source={icons.search} style={styles.searchIconImg} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search"
+                  placeholderTextColor="#999"
+                  value={brandQuery}
+                  onChangeText={setBrandQuery}
                 />
-              ))}
-            </ScrollView>
-          </>
-        )}
-
-        {/* Color detail with dropdown groups */}
-        {activeSection === "color" && (
-          <>
-            <Text style={styles.sectionTitle}>{SECTION_LABELS.color}</Text>
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {COLOR_GROUPS.map((group) => (
-                <View key={group.label}>
-                  <Pressable
-                    style={groupStyles.header}
-                    onPress={() => toggleGroup(group.label)}
-                  >
-                    <Text style={groupStyles.headerLabel}>{group.label}</Text>
-                    <Text style={groupStyles.chevron}>
-                      {openGroups[group.label] ? "▲" : "▼"}
-                    </Text>
-                  </Pressable>
-                  {openGroups[group.label] &&
-                    group.colors.map((color) => (
-                      <CheckboxRow
-                        key={color}
-                        label={color}
-                        checked={filter.color.includes(color)}
-                        onPress={() => selectMultiple("color", color)}
-                        indent
-                      />
-                    ))}
+              </View>
+              <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.brandGrid}>
+                  {filteredBrands.map((brand) => (
+                    <Pressable
+                      key={brand}
+                      style={[
+                        styles.brandItem,
+                        { width: brandItemWidth },
+                        filter.brand === brand && styles.brandItemSelected,
+                      ]}
+                      onPress={() => selectBrand(brand)}
+                    >
+                      <View
+                        style={[
+                          styles.brandImageBox,
+                          { width: brandItemWidth, height: brandItemWidth },
+                          filter.brand === brand &&
+                            styles.brandImageBoxSelected,
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: BRAND_IMAGES[brand] }}
+                          style={styles.brandImage}
+                          resizeMode="cover"
+                        />
+                        {filter.brand === brand && (
+                          <View style={styles.brandCheckOverlay}>
+                            <Text style={styles.brandCheckMark}>✓</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.brandName,
+                          filter.brand === brand && styles.brandNameSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {brand}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
-              ))}
-            </ScrollView>
-          </>
-        )}
+              </ScrollView>
+            </>
+          )}
 
-        {/* Sort By detail */}
-        {activeSection === "sortBy" && (
-          <>
-            <Text style={styles.sectionTitle}>{SECTION_LABELS.sortBy}</Text>
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {FILTER_OPTIONS.sortOptions.map(({ label, value }) => (
-                <CheckboxRow
-                  key={value}
-                  label={label}
-                  checked={filter.sortBy === value}
-                  onPress={() => selectSort(value)}
-                />
-              ))}
-            </ScrollView>
-          </>
-        )}
+          {/* Category detail */}
+          {activeSection === "category" && (
+            <>
+              <Text style={styles.sectionTitle}>{SECTION_LABELS.category}</Text>
+              <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+                {FILTER_OPTIONS.categories.map((cat) => (
+                  <CheckboxRow
+                    key={cat}
+                    label={cat}
+                    checked={filter.category.includes(cat)}
+                    onPress={() => selectMultiple("category", cat)}
+                  />
+                ))}
+              </ScrollView>
+            </>
+          )}
 
-        {/* Apply button */}
-        <Pressable
-          style={styles.applyButton}
-          onPress={() => {
-            setActiveSection(null);
-            onApply(filter);
-          }}
-        >
-          <Text style={styles.applyText}>Show Products</Text>
-        </Pressable>
-      </SafeAreaView>
+          {/* Color detail with dropdown groups */}
+          {activeSection === "color" && (
+            <>
+              <Text style={styles.sectionTitle}>{SECTION_LABELS.color}</Text>
+              <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+                {COLOR_GROUPS.map((group) => (
+                  <View key={group.label}>
+                    <Pressable
+                      style={groupStyles.header}
+                      onPress={() => toggleGroup(group.label)}
+                    >
+                      <Text style={groupStyles.headerLabel}>{group.label}</Text>
+                      <Text style={groupStyles.chevron}>
+                        {openGroups[group.label] ? "▲" : "▼"}
+                      </Text>
+                    </Pressable>
+                    {openGroups[group.label] &&
+                      group.colors.map((color) => (
+                        <CheckboxRow
+                          key={color}
+                          label={color}
+                          checked={filter.color.includes(color)}
+                          onPress={() => selectMultiple("color", color)}
+                          indent
+                        />
+                      ))}
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Sort By detail */}
+          {activeSection === "sortBy" && (
+            <>
+              <Text style={styles.sectionTitle}>{SECTION_LABELS.sortBy}</Text>
+              <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+                {FILTER_OPTIONS.sortOptions.map(({ label, value }) => (
+                  <CheckboxRow
+                    key={value}
+                    label={label}
+                    checked={filter.sortBy === value}
+                    onPress={() => selectSort(value)}
+                  />
+                ))}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Apply button */}
+          <Pressable
+            style={styles.applyButton}
+            onPress={() => {
+              setActiveSection(null);
+              onApply(filter);
+            }}
+          >
+            <Text style={styles.applyText}>Show Products</Text>
+          </Pressable>
+        </SafeAreaView>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -347,8 +375,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
   },
   header: {
     flexDirection: "row",

@@ -14,9 +14,54 @@ import { useRouter } from "expo-router";
 
 import { icons } from "../../shared/assets/icons";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
-import { fetchFurnitureItems } from "../../entities/product/api";
+import { DEFAULT_FILTER, FilterState } from "../../features/filter/model/type";
+import { searchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
+
+function applyClientSideFilters(
+  items: Product[],
+  searchText: string,
+  filter: FilterState,
+): Product[] {
+  const q = searchText.trim().toLowerCase();
+  const selectedRooms = filter.category.map((v) => v.toLowerCase());
+  const selectedColors = filter.color.map((v) => v.toLowerCase());
+
+  let result = items.filter((item) => {
+    if (q && !item.title.toLowerCase().includes(q)) return false;
+    if (filter.brand && item.brand.toLowerCase() !== filter.brand.toLowerCase()) return false;
+    if (item.price < filter.priceRange.min || item.price > filter.priceRange.max) return false;
+
+    if (selectedRooms.length > 0) {
+      const room = (item.roomType ?? "").toLowerCase();
+      const category = (item.category ?? "").toLowerCase();
+      const matchedRoom = selectedRooms.some(
+        (value) => room.includes(value) || category.includes(value),
+      );
+      if (!matchedRoom) return false;
+    }
+
+    if (selectedColors.length > 0) {
+      const itemColor = (item.color ?? "").toLowerCase();
+      const matchedColor = selectedColors.some((value) => {
+        const tokens = value.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+        return tokens.some((token) => itemColor.includes(token));
+      });
+      if (!matchedColor) return false;
+    }
+
+    return true;
+  });
+
+  if (filter.sortBy === "price-high-to-low") {
+    result = [...result].sort((a, b) => b.price - a.price);
+  } else if (filter.sortBy === "price-low-to-high") {
+    result = [...result].sort((a, b) => a.price - b.price);
+  }
+
+  return result;
+}
 
 export function ExplorePage() {
   const router = useRouter();
@@ -27,39 +72,39 @@ export function ExplorePage() {
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterState>(DEFAULT_FILTER);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // fetch products from backend
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await fetchFurnitureItems();
-        setAllProducts(data);
-        setProducts(data);
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
-        setLoading(false);
-      }
+  async function fetchWithBackend(searchText: string, filter: FilterState) {
+    setLoading(true);
+    try {
+      const backendItems = await searchFurnitureItems({
+        q: searchText,
+        brand: filter.brand,
+        category: filter.category,
+        roomType: filter.category,
+        color: filter.color,
+        minPrice: filter.priceRange.min,
+        maxPrice: filter.priceRange.max,
+        sortBy: filter.sortBy,
+      });
+      setProducts(applyClientSideFilters(backendItems, searchText, filter));
+    } catch (error) {
+      console.error("Failed to search products:", error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    load();
+  useEffect(() => {
+    fetchWithBackend("", DEFAULT_FILTER);
   }, []);
 
-  async function handleSearch(text: string) {
+  function handleSearch(text: string) {
     setQuery(text);
-    const normalized = text.trim().toLowerCase();
-    if (!normalized) {
-      setProducts(allProducts);
-      return;
-    }
-
-    const filtered = allProducts.filter((item) =>
-      item.title.toLowerCase().includes(normalized),
-    );
-    setProducts(filtered);
+    fetchWithBackend(text, activeFilter);
   }
 
   if (loading) {
@@ -98,33 +143,12 @@ export function ExplorePage() {
           contentContainerStyle={{ gap: GAP }}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => {
-                // #region agent log
-                fetch(
-                  "http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "X-Debug-Session-Id": "1e43da",
-                    },
-                    body: JSON.stringify({
-                      sessionId: "1e43da",
-                      runId: "route-debug-1",
-                      hypothesisId: "H1",
-                      location: "pages/02_explore/ui.tsx:onPressCard",
-                      message: "explore card pressed",
-                      data: { itemId: item.id, pushPathname: "/product/[id]" },
-                      timestamp: Date.now(),
-                    }),
-                  },
-                ).catch(() => {});
-                // #endregion
+              onPress={() =>
                 router.push({
                   pathname: "/(main)/[id]",
                   params: { id: item.id },
-                });
-              }}
+                })
+              }
             >
               <Image
                 source={{ uri: item.imageUrl || item.productUrl }}
@@ -150,9 +174,12 @@ export function ExplorePage() {
       <FilterModal
         visible={filterOpen}
         onClose={() => setFilterOpen(false)}
-        onApply={(_filter) => {
+        onApply={(filter) => {
+          console.log("[ExploreFilter] apply pressed with filter:", filter);
+          console.log("[ExploreFilter] current query:", query);
           setFilterOpen(false);
-          // TODO: apply filter to product list
+          setActiveFilter(filter);
+          fetchWithBackend(query, filter);
         }}
       />
     </View>
