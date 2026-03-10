@@ -37,7 +37,7 @@ export default function SignupScreen() {
       const res = await signup({ email, password, displayName });
       await saveToken(res.token);
       await saveUserId(res.userId);
-      router.replace("/home");
+      router.replace("/onboarding");
     } catch (err: any) {
       const message =
         err?.response?.data?.message ?? "Sign up failed. Please try again.";

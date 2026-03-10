@@ -12,4 +12,6 @@ export const icons = {
   search: require("./search.png"),
   filter: require("./filter.png"),
   google: require("./google.png"),
+  onboarding_image: require("./onboarding_image.png"),
+  maroon_onboarding: require("./maroon_onboarding.png"),
 };
