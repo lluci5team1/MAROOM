@@ -16,6 +16,7 @@ import { icons } from "../../shared/assets/icons";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
 import { fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 export function ExplorePage() {
   const router = useRouter();
@@ -62,11 +63,7 @@ export function ExplorePage() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.loading}>
-        <Text>Loading...</Text>
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -163,12 +160,6 @@ export function ExplorePage() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

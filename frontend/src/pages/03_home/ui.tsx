@@ -4,6 +4,7 @@ import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
 import { fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 import { getUserId } from "../../shared/api/token";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -27,7 +28,7 @@ export function HomePage() {
   }, []);
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <LoadingScreen />;
   }
 
   return (

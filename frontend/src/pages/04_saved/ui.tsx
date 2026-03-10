@@ -7,6 +7,7 @@ import { getUserId } from "../../shared/api/token";
 import CategoryButton from "../../shared/ui/saved/CategoryButton";
 import { SavedProductCard } from "../../shared/ui/saved/SavedProductCard";
 import { SavedProductCardDummy } from "../../shared/ui/saved/SavedProductCardDummy";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 export function SavedPage() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export function SavedPage() {
   return (
     <View style={{ flex: 1, alignItems: "center" }} >
       {loading ?
-        <Text>Loading...</Text> :
+        <LoadingScreen /> :
 
         <>
           {/* 상단 */}
@@ -97,7 +98,7 @@ export function SavedPage() {
                       fetch("http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"1e43da"},body:JSON.stringify({sessionId:"1e43da",runId:"route-debug-1",hypothesisId:"H1",location:"pages/04_saved/ui.tsx:onPressCard",message:"saved card pressed",data:{itemId:item.id,pushPathname:"/product/[id]"},timestamp:Date.now()})}).catch(()=>{});
                       // #endregion
                       router.push({
-                        pathname: "/product/[id]",
+                        pathname: "/(main)/[id]",
                         params: { id: item.id },
                       });
                     }}

@@ -3,9 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { removeToken, removeUserId } from "../../shared/api/token";
+import { apiClient } from "../../shared/api/client";
 
 export function ProfilePage() {
   const handleLogout = async () => {
+    try {
+      await apiClient.post("/auth/logout");
+    } catch {}
     await removeToken();
     await removeUserId();
     router.replace("/login");

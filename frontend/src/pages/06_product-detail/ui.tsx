@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Linking,
   Pressable,
@@ -21,6 +20,7 @@ import {
 } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 import { getUserId } from "../../shared/api/token";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 const COLOR_MAP: Record<string, string> = {
   black: "#222222",
@@ -148,11 +148,7 @@ export function ProductDetailPage() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="small" color="#018ABD" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   if (!product) {

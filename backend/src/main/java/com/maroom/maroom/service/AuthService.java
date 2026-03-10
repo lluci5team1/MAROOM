@@ -8,6 +8,7 @@ import com.maroom.maroom.repository.SessionTokenRepository;
 import com.maroom.maroom.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -82,6 +83,7 @@ public class AuthService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    @Transactional
     public void logout(String token) {
         sessionTokenRepository.deleteByToken(token);
     }
