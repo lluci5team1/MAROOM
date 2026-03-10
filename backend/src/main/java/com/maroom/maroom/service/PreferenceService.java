@@ -8,10 +8,43 @@ import com.maroom.maroom.repository.PreferenceRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class PreferenceService {
+
+    private static final Set<String> ALLOWED_HOME_TYPES = Set.of(
+            "SINGLE_FAMILY_HOME",
+            "1_BEDROOM",
+            "2_BEDROOM",
+            "DORM_STUDIO"
+    );
+
+    private static final Set<String> ALLOWED_ROOM_SIZES = Set.of(
+            "SMALL",
+            "MEDIUM",
+            "LARGE"
+    );
+
+    private static final Set<String> ALLOWED_STYLES = Set.of(
+            "MINIMALIST",
+            "MODERN",
+            "SCANDINAVIAN",
+            "MID_CENTURY",
+            "JAPANDI",
+            "BOHO",
+            "INDUSTRIAL"
+    );
+
+    private static final Set<String> ALLOWED_COLOR_PALETTES = Set.of(
+            "WARM_NEUTRAL",
+            "COOL_NEUTRAL",
+            "EARTHY_TONES",
+            "BLACK_WHITE",
+            "VIBRANT",
+            "PASTEL"
+    );
 
     private final PreferenceRepository preferenceRepository;
     private final ObjectMapper objectMapper;
@@ -53,8 +86,16 @@ public class PreferenceService {
             throw new IllegalArgumentException("homeType is required");
         }
 
+        if (!ALLOWED_HOME_TYPES.contains(request.getHomeType())) {
+            throw new IllegalArgumentException("Invalid homeType");
+        }
+
         if (request.getRoomSize() == null || request.getRoomSize().isBlank()) {
             throw new IllegalArgumentException("roomSize is required");
+        }
+
+        if (!ALLOWED_ROOM_SIZES.contains(request.getRoomSize())) {
+            throw new IllegalArgumentException("Invalid roomSize");
         }
 
         if (request.getStyles() == null || request.getStyles().isEmpty()) {
@@ -65,12 +106,24 @@ public class PreferenceService {
             throw new IllegalArgumentException("You can select up to 3 styles");
         }
 
+        for (String style : request.getStyles()) {
+            if (!ALLOWED_STYLES.contains(style)) {
+                throw new IllegalArgumentException("Invalid style: " + style);
+            }
+        }
+
         if (request.getColorPalette() == null || request.getColorPalette().isEmpty()) {
             throw new IllegalArgumentException("At least one color palette is required");
         }
 
         if (request.getColorPalette().size() > 2) {
             throw new IllegalArgumentException("You can select up to 2 color palettes");
+        }
+
+        for (String color : request.getColorPalette()) {
+            if (!ALLOWED_COLOR_PALETTES.contains(color)) {
+                throw new IllegalArgumentException("Invalid colorPalette: " + color);
+            }
         }
 
         if (request.getMinBudget() == null || request.getMaxBudget() == null) {
