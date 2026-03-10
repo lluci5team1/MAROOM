@@ -12,7 +12,7 @@ export function ProductCard({ product }: { product: Product }) {
         </View>*/}
         <Image
           source={{
-            uri: product.productUrl,
+            uri: product.imageUrl,
           }}
           style={styles.image}
           resizeMode="cover"

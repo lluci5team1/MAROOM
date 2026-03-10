@@ -14,7 +14,7 @@ import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { icons } from "../../shared/assets/icons";
 import { useRouter } from "expo-router";
 import { login } from "../../entities/user/api";
-import { saveToken } from "../../shared/api/token";
+import { saveToken, saveUserId } from "../../shared/api/token";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -38,6 +38,7 @@ export default function LoginScreen() {
       const res = await login({ email, password });
 
       await saveToken(res.token);
+      await saveUserId(res.userId);
       router.replace("/home");
     } catch (err: any) {
       const message =

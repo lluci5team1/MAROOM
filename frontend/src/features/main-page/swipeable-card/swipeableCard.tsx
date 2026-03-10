@@ -18,7 +18,7 @@ type Props = {
   animatedValues: SharedValue<number>;
   maxVisibleItem: number;
   dataLength: number;
-  onSwiped: () => void;
+  onSwiped: (direction: "LEFT" | "RIGHT") => void;
   front: React.ReactNode;
   back: React.ReactNode;
   likeButton?: React.ReactNode;

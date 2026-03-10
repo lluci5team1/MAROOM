@@ -69,6 +69,31 @@ public class SavedController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{userId}/{furnitureId}")
+    public ResponseEntity<Map<String, Object>> removeSavedItem(@PathVariable UUID userId, @PathVariable UUID furnitureId) {
+        Optional<SavedList> likedListOptional = savedListRepository.findFirstByUserIdAndName(userId, "Liked");
+        if (likedListOptional.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "ok", false,
+                    "message", "Liked list not found"
+            ));
+        }
+
+        SavedList likedList = likedListOptional.get();
+        Optional<SavedItem> savedItemOptional =
+                savedItemRepository.findFirstBySavedListIdAndFurnitureId(likedList.getId(), furnitureId);
+
+        if (savedItemOptional.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "ok", false,
+                    "message", "Saved item not found"
+            ));
+        }
+
+        savedItemRepository.delete(savedItemOptional.get());
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
     private SavedFurnitureResponse toResponse(SavedItem savedItem, FurnitureItem furniture) {
         return new SavedFurnitureResponse(
                 savedItem.getId(),

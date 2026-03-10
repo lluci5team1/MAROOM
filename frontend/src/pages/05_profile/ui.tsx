@@ -2,8 +2,15 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { removeToken, removeUserId } from "../../shared/api/token";
 
 export function ProfilePage() {
+  const handleLogout = async () => {
+    await removeToken();
+    await removeUserId();
+    router.replace("/login");
+  };
+
   return (
     <View style={styles.container}>
       {/* Title */}
@@ -28,7 +35,7 @@ export function ProfilePage() {
       <MenuItem icon="user" text="My Profile" />
       <MenuItem icon="settings" text="Settings" />
       <MenuItem icon="bell" text="Notification" rightText="Allow" />
-      <MenuItem icon="log-out" text="Log Out" />
+      <MenuItem icon="log-out" text="Log Out" onPress={handleLogout} />
 
       {/* TEMP: 404 테스트 버튼 */}
       <TouchableOpacity style={styles.tempButton} onPress={() => router.push("/test-404" as any)}>
@@ -42,13 +49,15 @@ function MenuItem({
   icon,
   text,
   rightText,
+  onPress,
 }: {
   icon: any;
   text: string;
   rightText?: string;
+  onPress?: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.menuItem}>
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <View style={styles.menuLeft}>
         <Feather name={icon} size={22} color="#444" />
         <Text style={styles.menuText}>{text}</Text>

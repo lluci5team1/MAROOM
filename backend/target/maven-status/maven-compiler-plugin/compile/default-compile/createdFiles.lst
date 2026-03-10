@@ -1,4 +1,3 @@
-com/.DS_Store
 com/maroom/maroom/repository/FurnitureItemRepository.class
 com/maroom/maroom/service/PreferenceService.class
 com/maroom/maroom/controller/HelloController.class
@@ -13,7 +12,6 @@ com/maroom/maroom/controller/UserController$CreateUserRequest.class
 com/maroom/maroom/MaroomApplication.class
 com/maroom/maroom/dto/LoginRequest.class
 com/maroom/maroom/domain/FurnitureItem.class
-.DS_Store
 com/maroom/maroom/controller/UserController.class
 com/maroom/maroom/controller/SwipeController$SwipeRequest.class
 com/maroom/maroom/domain/SavedList.class
@@ -24,12 +22,10 @@ com/maroom/maroom/domain/SavedItem.class
 com/maroom/maroom/domain/Preference.class
 com/maroom/maroom/service/AuthService.class
 com/maroom/maroom/repository/UserRepository.class
-com/maroom/.DS_Store
 com/maroom/maroom/controller/SavedController.class
 com/maroom/maroom/domain/SessionToken.class
 com/maroom/maroom/repository/SwipeEventRepository.class
 com/maroom/maroom/repository/SessionTokenRepository.class
-com/maroom/maroom/.DS_Store
 com/maroom/maroom/CsvDataLoader.class
 com/maroom/maroom/dto/AuthResult.class
 com/maroom/maroom/controller/FurnitureItemController.class

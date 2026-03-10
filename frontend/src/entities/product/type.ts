@@ -7,5 +7,6 @@ export type Product = {
   color: string;
   price: number; // Integer → number
   roomType: string;
+  imageUrl: string;
   productUrl: string;
 };

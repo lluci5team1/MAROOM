@@ -1,31 +1,36 @@
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, Image, StyleSheet, Pressable } from "react-native";
 //import { Dimensions } from "react-native";
 import { Product } from "../../../entities/product/type";
 import { icons } from "../../assets/icons";
 
-export function SavedProductCard({ product }: { product: Product }) {
+type Props = {
+  product: Product;
+  onPress?: () => void;
+};
+
+export function SavedProductCard({ product, onPress }: Props) {
   return (
-    <View style={styles.shadowWrapper}>
+    <Pressable style={styles.shadowWrapper} onPress={onPress}>
       <View style={styles.card}>
         {/*<View style={styles.backButtonContainer}>
           <Image source={icons.backButton} style={styles.backButton} />
         </View>*/}
         <Image
           source={{
-            uri: product.image,
+            uri: product.imageUrl,
           }}
           style={styles.image}
           resizeMode="cover"
         />
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
-            {product.name}
+            {product.title}
           </Text>
           <Text style={styles.space}>{product.brand}</Text>
           <Text style={styles.price}>${product.price}</Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -58,9 +63,11 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   content: { flex: 1, padding: 12, gap: 1 },
-  title: { 
-    fontSize: 10, fontFamily: "Poppins_400SemiBold", 
-    textOverflow: "ellipsis", width: "100%",
+  title: {
+    fontSize: 10,
+    fontFamily: "Poppins_400SemiBold",
+    textOverflow: "ellipsis",
+    width: "100%",
   },
   space: { fontSize: 7, fontFamily: "Poppins_400Regular" },
   price: { fontSize: 8, fontFamily: "Poppins_400SemiBold" },

@@ -14,7 +14,7 @@ type Params = {
   width: number;
   animatedValues: any;
   maxVisibleItem: number;
-  onSwiped: () => void;
+  onSwiped: (direction: "LEFT" | "RIGHT") => void;
 };
 
 export function useSwipeGesture({
@@ -29,6 +29,8 @@ export function useSwipeGesture({
   const translateX = useSharedValue(0);
   const direction = useSharedValue(1);
   const isSwiping = useSharedValue(false);
+  const onSwipedRight = () => onSwiped("RIGHT");
+  const onSwipedLeft = () => onSwiped("LEFT");
 
   const pan = Gesture.Pan()
     .onUpdate((e) => {
@@ -48,10 +50,17 @@ export function useSwipeGesture({
 
       if (Math.abs(e.translationX) > 150) {
         isSwiping.value = true;
-        translateX.value = withTiming(width * direction.value, {}, () => {
-          isSwiping.value = false;
-          scheduleOnRN(onSwiped);
-        });
+        if (direction.value > 0) {
+          translateX.value = withTiming(width, {}, () => {
+            isSwiping.value = false;
+            scheduleOnRN(onSwipedRight);
+          });
+        } else {
+          translateX.value = withTiming(-width, {}, () => {
+            isSwiping.value = false;
+            scheduleOnRN(onSwipedLeft);
+          });
+        }
         animatedValues.value = withTiming(currentIndex + 1);
       } else {
         translateX.value = withTiming(0);
@@ -105,7 +114,7 @@ export function useSwipeGesture({
 
     translateX.value = withTiming(width, {}, () => {
       isSwiping.value = false;
-      scheduleOnRN(onSwiped);
+      scheduleOnRN(onSwipedRight);
     });
     animatedValues.value = withTiming(currentIndex + 1);
   };
@@ -117,7 +126,7 @@ export function useSwipeGesture({
 
     translateX.value = withTiming(-width, {}, () => {
       isSwiping.value = false;
-      scheduleOnRN(onSwiped);
+      scheduleOnRN(onSwipedLeft);
     });
     animatedValues.value = withTiming(currentIndex + 1);
   };

@@ -1,4 +1,4 @@
-import { Product } from "./type";
+/*import { Product } from "./type";
 
 export const products: Product[] = [
   {
@@ -74,3 +74,4 @@ export const products: Product[] = [
       "https://www.ikea.com/us/en/images/products/hemnes-daybed-frame-with-3-drawers-gray-green__1471590_pe997296_s5.jpg?f=xl",
   },
 ];
+*/

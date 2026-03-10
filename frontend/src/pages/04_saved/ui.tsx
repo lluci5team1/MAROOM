@@ -1,25 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { Product } from "../../entities/product/type";
-import { fetchSavedProductsSample } from "../../shared/api/fetchSavedProductsSample";
+import { fetchSavedProducts } from "../../entities/product/api";
+import { getUserId } from "../../shared/api/token";
 import CategoryButton from "../../shared/ui/saved/CategoryButton";
 import { SavedProductCard } from "../../shared/ui/saved/SavedProductCard";
 import { SavedProductCardDummy } from "../../shared/ui/saved/SavedProductCardDummy";
 
 export function SavedPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [curCategory, setCurCategory] = useState("All furniture");
 
   const furnitureTypes = ["All furniture", "Chair", "Step", "Lamp", "Bed", "Storage"];
 
-
-  // saved products 불러오기
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const data = await fetchSavedProductsSample();
-      setProducts(data);
+      const userId = await getUserId();
+      console.log("[Saved] userId:", userId);
+      if (userId) {
+        const data = await fetchSavedProducts(userId).catch((e) => { console.log("[Saved] error:", e?.message); return []; });
+        console.log("[Saved] products count:", data.length);
+        setProducts(data);
+      }
       setLoading(false);
     }
     load();
@@ -81,7 +87,22 @@ export function SavedPage() {
               data={displayProducts}
               keyExtractor={(item, index) => item.id?.toString() ?? `dummy-${index}`}
               renderItem={({ item }) =>
-                item.id === "dummy" ? <SavedProductCardDummy /> : <SavedProductCard product={item} />
+                item.id === "dummy" ? (
+                  <SavedProductCardDummy />
+                ) : (
+                  <SavedProductCard
+                    product={item}
+                    onPress={() => {
+                      // #region agent log
+                      fetch("http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"1e43da"},body:JSON.stringify({sessionId:"1e43da",runId:"route-debug-1",hypothesisId:"H1",location:"pages/04_saved/ui.tsx:onPressCard",message:"saved card pressed",data:{itemId:item.id,pushPathname:"/product/[id]"},timestamp:Date.now()})}).catch(()=>{});
+                      // #endregion
+                      router.push({
+                        pathname: "/product/[id]",
+                        params: { id: item.id },
+                      });
+                    }}
+                  />
+                )
               }
               numColumns={2}
               contentContainerStyle={styles.savedProductHolder}

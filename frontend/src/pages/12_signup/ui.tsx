@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { signup } from "../../entities/user/api";
-import { saveToken } from "../../shared/api/token";
+import { saveToken, saveUserId } from "../../shared/api/token";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -36,6 +36,7 @@ export default function SignupScreen() {
       setLoading(true);
       const res = await signup({ email, password, displayName });
       await saveToken(res.token);
+      await saveUserId(res.userId);
       router.replace("/home");
     } catch (err: any) {
       const message =

@@ -10,14 +10,15 @@ import {
 } from "react-native";
 import { Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import { icons } from "../../shared/assets/icons";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
-// import { fetchFurnitureItems } from "../../entities/product/api";
-import { fetchFurnitureItemsTEMP, searchProductTEMP } from "../../entities/product/api";
+import { fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 
 export function ExplorePage() {
+  const router = useRouter();
   const GAP = 2;
   const NUM_COLUMNS = 3;
   const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -25,6 +26,7 @@ export function ExplorePage() {
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,8 +34,8 @@ export function ExplorePage() {
   useEffect(() => {
     async function load() {
       try {
-        // const data = await fetchFurnitureItems();
-        const data = await fetchFurnitureItemsTEMP();
+        const data = await fetchFurnitureItems();
+        setAllProducts(data);
         setProducts(data);
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -47,8 +49,16 @@ export function ExplorePage() {
 
   async function handleSearch(text: string) {
     setQuery(text);
-    const result = await searchProductTEMP(text);
-    setProducts(result);
+    const normalized = text.trim().toLowerCase();
+    if (!normalized) {
+      setProducts(allProducts);
+      return;
+    }
+
+    const filtered = allProducts.filter((item) =>
+      item.title.toLowerCase().includes(normalized),
+    );
+    setProducts(filtered);
   }
 
   if (loading) {
@@ -90,9 +100,37 @@ export function ExplorePage() {
           columnWrapperStyle={{ gap: GAP }}
           contentContainerStyle={{ gap: GAP }}
           renderItem={({ item }) => (
-            <Pressable>
+            <Pressable
+              onPress={() => {
+                // #region agent log
+                fetch(
+                  "http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "X-Debug-Session-Id": "1e43da",
+                    },
+                    body: JSON.stringify({
+                      sessionId: "1e43da",
+                      runId: "route-debug-1",
+                      hypothesisId: "H1",
+                      location: "pages/02_explore/ui.tsx:onPressCard",
+                      message: "explore card pressed",
+                      data: { itemId: item.id, pushPathname: "/product/[id]" },
+                      timestamp: Date.now(),
+                    }),
+                  },
+                ).catch(() => {});
+                // #endregion
+                router.push({
+                  pathname: "/(main)/[id]",
+                  params: { id: item.id },
+                });
+              }}
+            >
               <Image
-                source={{ uri: item.productUrl }}
+                source={{ uri: item.imageUrl || item.productUrl }}
                 style={{
                   width: ITEM_SIZE,
                   height: ITEM_SIZE,
