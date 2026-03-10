@@ -1,14 +1,16 @@
 package com.maroom.maroom.controller;
 
+import com.maroom.maroom.domain.FurnitureItem;
 import com.maroom.maroom.domain.SavedItem;
 import com.maroom.maroom.domain.SavedList;
+import com.maroom.maroom.dto.SavedFurnitureResponse;
+import com.maroom.maroom.repository.FurnitureItemRepository;
 import com.maroom.maroom.repository.SavedItemRepository;
 import com.maroom.maroom.repository.SavedListRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/saved")
@@ -16,11 +18,14 @@ public class SavedController {
 
     private final SavedListRepository savedListRepository;
     private final SavedItemRepository savedItemRepository;
+    private final FurnitureItemRepository furnitureItemRepository;
 
     public SavedController(SavedListRepository savedListRepository,
-                           SavedItemRepository savedItemRepository) {
+                           SavedItemRepository savedItemRepository,
+                           FurnitureItemRepository furnitureItemRepository) {
         this.savedListRepository = savedListRepository;
         this.savedItemRepository = savedItemRepository;
+        this.furnitureItemRepository = furnitureItemRepository;
     }
 
     @PostMapping("/lists")
@@ -40,6 +45,44 @@ public class SavedController {
 
     @GetMapping("/items/{listId}")
     public ResponseEntity<List<SavedItem>> getItems(@PathVariable UUID listId) {
-        return ResponseEntity.ok(savedItemRepository.findBySavedListId(listId));
+        return ResponseEntity.ok(savedItemRepository.findBySavedListIdOrderByCreatedAtDesc(listId));
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<List<SavedFurnitureResponse>> getSavedForUser(@PathVariable UUID userId) {
+        Optional<SavedList> likedListOptional = savedListRepository.findFirstByUserIdAndName(userId, "Liked");
+
+        if (likedListOptional.isEmpty()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        SavedList likedList = likedListOptional.get();
+        List<SavedItem> savedItems = savedItemRepository.findBySavedListIdOrderByCreatedAtDesc(likedList.getId());
+
+        List<SavedFurnitureResponse> response = savedItems.stream()
+                .map(savedItem -> furnitureItemRepository.findById(savedItem.getFurnitureId())
+                        .map(furniture -> toResponse(savedItem, furniture))
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    private SavedFurnitureResponse toResponse(SavedItem savedItem, FurnitureItem furniture) {
+        return new SavedFurnitureResponse(
+                savedItem.getId(),
+                savedItem.getCreatedAt(),
+                furniture.getId(),
+                furniture.getTitle(),
+                furniture.getCategory(),
+                furniture.getBrand(),
+                furniture.getStyle(),
+                furniture.getColor(),
+                furniture.getPrice(),
+                furniture.getRoomType(),
+                furniture.getProductUrl(),
+                furniture.getImageUrl()
+        );
     }
 }

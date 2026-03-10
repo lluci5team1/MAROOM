@@ -18,7 +18,7 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    public record CreateUserRequest(String email, String displayName, String authProvider) {}
+    public record CreateUserRequest(String email, String displayName, String authProvider, String passwordHash) {}
 
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest req) {
@@ -41,7 +41,7 @@ public class UserController {
         String authProvider = req.authProvider() == null ? "LOCAL" : req.authProvider().trim();
         if (authProvider.isBlank()) authProvider = "LOCAL";
 
-        User user = new User(email, displayName, authProvider);
+        User user = new User(email, displayName, authProvider, "");
         User saved = userRepository.save(user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);

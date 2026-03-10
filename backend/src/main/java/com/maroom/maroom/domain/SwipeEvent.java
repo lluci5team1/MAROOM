@@ -5,17 +5,15 @@ import java.util.UUID;
 
 import org.hibernate.annotations.UuidGenerator;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "swipe_event")
+@Table(
+        name = "swipe_event",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "furniture_id"})
+        }
+)
 public class SwipeEvent {
 
     @Id

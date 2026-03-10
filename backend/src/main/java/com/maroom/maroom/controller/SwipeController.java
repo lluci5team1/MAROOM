@@ -1,12 +1,15 @@
 package com.maroom.maroom.controller;
 
+import com.maroom.maroom.domain.FurnitureItem;
 import com.maroom.maroom.domain.SavedItem;
 import com.maroom.maroom.domain.SavedList;
 import com.maroom.maroom.domain.SwipeDirection;
 import com.maroom.maroom.domain.SwipeEvent;
+import com.maroom.maroom.repository.FurnitureItemRepository;
 import com.maroom.maroom.repository.SavedItemRepository;
 import com.maroom.maroom.repository.SavedListRepository;
 import com.maroom.maroom.repository.SwipeEventRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,16 +22,18 @@ public class SwipeController {
     private final SwipeEventRepository swipeEventRepository;
     private final SavedListRepository savedListRepository;
     private final SavedItemRepository savedItemRepository;
+    private final FurnitureItemRepository furnitureItemRepository;
 
     public SwipeController(SwipeEventRepository swipeEventRepository,
                            SavedListRepository savedListRepository,
-                           SavedItemRepository savedItemRepository) {
+                           SavedItemRepository savedItemRepository,
+                           FurnitureItemRepository furnitureItemRepository) {
         this.swipeEventRepository = swipeEventRepository;
         this.savedListRepository = savedListRepository;
         this.savedItemRepository = savedItemRepository;
+        this.furnitureItemRepository = furnitureItemRepository;
     }
 
-    // 요청 바디용 (DTO 폴더 안 만들고 컨트롤러 내부에 둠)
     public static class SwipeRequest {
         public UUID userId;
         public UUID furnitureId;
@@ -37,10 +42,17 @@ public class SwipeController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> swipe(@RequestBody SwipeRequest req) {
-        if (req.userId == null || req.furnitureId == null || req.direction == null) {
+        if (req == null || req.userId == null || req.furnitureId == null || req.direction == null) {
             return ResponseEntity.badRequest().body(Map.of(
                     "ok", false,
                     "message", "userId, furnitureId, direction are required"
+            ));
+        }
+
+        if (swipeEventRepository.existsByUserIdAndFurnitureId(req.userId, req.furnitureId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "ok", false,
+                    "message", "This furniture was already swiped by this user"
             ));
         }
 
@@ -80,5 +92,27 @@ public class SwipeController {
     @GetMapping("/events/{userId}")
     public ResponseEntity<List<SwipeEvent>> listUserSwipes(@PathVariable UUID userId) {
         return ResponseEntity.ok(swipeEventRepository.findByUserIdOrderByCreatedAtDesc(userId));
+    }
+
+    @GetMapping("/feed/{userId}")
+    public ResponseEntity<List<FurnitureItem>> getFeed(@PathVariable UUID userId,
+                                                       @RequestParam(defaultValue = "20") int size) {
+        List<UUID> swipedFurnitureIds = swipeEventRepository.findFurnitureIdsByUserId(userId);
+        List<FurnitureItem> candidates = furnitureItemRepository.findAll();
+
+        if (!swipedFurnitureIds.isEmpty()) {
+            Set<UUID> excluded = new HashSet<>(swipedFurnitureIds);
+            candidates = candidates.stream()
+                    .filter(item -> !excluded.contains(item.getId()))
+                    .toList();
+        }
+
+        List<FurnitureItem> shuffled = new ArrayList<>(candidates);
+        Collections.shuffle(shuffled);
+
+        if (size < 0) size = 0;
+        if (size > shuffled.size()) size = shuffled.size();
+
+        return ResponseEntity.ok(shuffled.subList(0, size));
     }
 }
