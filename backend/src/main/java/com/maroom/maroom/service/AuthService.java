@@ -76,6 +76,10 @@ public class AuthService {
         return new AuthResult(token, user.getId(), hasCompletedOnboarding);
     }
 
+    public void logout(String token) {
+        sessionTokenRepository.deleteByToken(token);
+    }
+
     private String generateToken() {
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
