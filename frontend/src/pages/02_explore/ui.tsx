@@ -9,10 +9,12 @@ import {
   Text,
 } from "react-native";
 import { Dimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { icons } from "../../shared/assets/icons";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
-import { fetchFurnitureItems } from "../../entities/product/api";
+// import { fetchFurnitureItems } from "../../entities/product/api";
+import { fetchFurnitureItemsTEMP, searchProductTEMP } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 
 export function ExplorePage() {
@@ -22,7 +24,7 @@ export function ExplorePage() {
   const ITEM_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   const [filterOpen, setFilterOpen] = useState(false);
-
+  const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,8 @@ export function ExplorePage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await fetchFurnitureItems();
+        // const data = await fetchFurnitureItems();
+        const data = await fetchFurnitureItemsTEMP();
         setProducts(data);
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -41,6 +44,12 @@ export function ExplorePage() {
 
     load();
   }, []);
+
+  async function handleSearch(text: string) {
+    setQuery(text);
+    const result = await searchProductTEMP(text);
+    setProducts(result);
+  }
 
   if (loading) {
     return (
@@ -59,28 +68,40 @@ export function ExplorePage() {
           placeholder="Search your furniture"
           placeholderTextColor="#999"
           style={styles.searchInput}
+          value={query}
+          onChangeText={handleSearch}
         />
       </View>
 
-      {/* Grid */}
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.id}
-        numColumns={NUM_COLUMNS}
-        columnWrapperStyle={{ gap: GAP }}
-        contentContainerStyle={{ gap: GAP }}
-        renderItem={({ item }) => (
-          <Pressable>
-            <Image
-              source={{ uri: item.productUrl }}
-              style={{
-                width: ITEM_SIZE,
-                height: ITEM_SIZE,
-              }}
-            />
-          </Pressable>
-        )}
-      />
+      {/* Grid or Empty State */}
+      {products.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="search" size={80} color="#018ABD" />
+          <Text style={styles.emptyTitle}>No Results Found</Text>
+          <Text style={styles.emptySubtitle}>
+            We can't find any item matching{"\n"}your search
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item.id}
+          numColumns={NUM_COLUMNS}
+          columnWrapperStyle={{ gap: GAP }}
+          contentContainerStyle={{ gap: GAP }}
+          renderItem={({ item }) => (
+            <Pressable>
+              <Image
+                source={{ uri: item.productUrl }}
+                style={{
+                  width: ITEM_SIZE,
+                  height: ITEM_SIZE,
+                }}
+              />
+            </Pressable>
+          )}
+        />
+      )}
 
       {/* Floating filter button */}
       <Pressable
@@ -94,8 +115,9 @@ export function ExplorePage() {
       <FilterModal
         visible={filterOpen}
         onClose={() => setFilterOpen(false)}
-        onApply={() => {
+        onApply={(_filter) => {
           setFilterOpen(false);
+          // TODO: apply filter to product list
         }}
       />
     </View>
@@ -150,5 +172,25 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     tintColor: "white",
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111",
+  },
+
+  emptySubtitle: {
+    fontSize: 13,
+    color: "#888",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

@@ -1,9 +1,23 @@
-import { Text, Pressable, StyleSheet } from "react-native";
+import { Text, Pressable, View, StyleSheet } from "react-native";
 
-export function FilterRow({ label }: { label: string }) {
+type Props = {
+  label: string;
+  selected?: string;
+  onPress: () => void;
+};
+
+export function FilterRow({ label, selected, onPress }: Props) {
   return (
-    <Pressable style={rowStyles.row}>
-      <Text style={rowStyles.label}>{label}</Text>
+    <Pressable style={rowStyles.row} onPress={onPress}>
+      <View style={rowStyles.labelContainer}>
+        <Text style={rowStyles.label}>{label}</Text>
+        {selected && (
+          <>
+            <Text style={rowStyles.dot}> •</Text>
+            <Text style={rowStyles.selected}> {selected}</Text>
+          </>
+        )}
+      </View>
       <Text style={rowStyles.chevron}>›</Text>
     </Pressable>
   );
@@ -16,9 +30,23 @@ const rowStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 18,
   },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   label: {
     fontSize: 16,
     color: "#000",
+    fontFamily: "Sansation_400Regular",
+  },
+  dot: {
+    fontSize: 16,
+    color: "#018ABD",
+    fontFamily: "Sansation_400Regular",
+  },
+  selected: {
+    fontSize: 13,
+    color: "#018ABD",
     fontFamily: "Sansation_400Regular",
   },
   chevron: {

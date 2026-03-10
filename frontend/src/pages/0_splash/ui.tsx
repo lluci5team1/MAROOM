@@ -2,17 +2,18 @@ import { View, Text, StyleSheet } from "react-native";
 import { useEffect } from "react";
 import { router } from "expo-router";
 import { Video, ResizeMode } from "expo-av";
+import { getToken } from "../../shared/api/token";
 
 export function SplashPage() {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const isLoggedIn = false; // Replace later with real auth check
+    const timer = setTimeout(async () => {
+      const token = await getToken();
 
-      if (isLoggedIn) {
+      if (token) {
         router.replace("/home");
+      } else {
+        router.replace("/login");
       }
-
-      router.replace("/login");
     }, 3000);
 
     return () => clearTimeout(timer);

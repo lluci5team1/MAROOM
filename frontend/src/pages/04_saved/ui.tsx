@@ -32,7 +32,7 @@ export function SavedPage() {
     if (curCategory === "All furniture") return products;
 
     return products.filter((product) =>
-      product.furnitureType.includes(curCategory)
+      product.category.includes(curCategory)
     );
   }, [curCategory, products]);
 
