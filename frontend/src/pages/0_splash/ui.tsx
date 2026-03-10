@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useEffect } from "react";
 import { router } from "expo-router";
 import { Video, ResizeMode } from "expo-av";
@@ -14,15 +14,16 @@ export function SplashPage() {
       } else {
         router.replace("/login");
       }
-    }, 6000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
+      <Text style={styles.text}>MAROOM</Text>
       <Video
-        source={require("../../shared/assets/start_animation.mov")}
+        source={require("../../shared/assets/ball_video.mp4")}
         style={styles.video}
         resizeMode={ResizeMode.COVER}
         shouldPlay
@@ -35,11 +36,20 @@ export function SplashPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#04B0FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  text: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   video: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
+    position: "absolute",
+    bottom: 0,
+    width: "30%",
+    height: "30%",
+    alignSelf: "center",
   },
 });

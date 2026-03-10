@@ -15,7 +15,14 @@ export function SavedPage() {
   const [loading, setLoading] = useState(true);
   const [curCategory, setCurCategory] = useState("All furniture");
 
-  const furnitureTypes = ["All furniture", "Chair", "Step", "Lamp", "Bed", "Storage"];
+  const furnitureTypes = [
+    "All furniture",
+    "Chair",
+    "Step",
+    "Lamp",
+    "Bed",
+    "Storage",
+  ];
 
   useEffect(() => {
     async function load() {
@@ -23,7 +30,10 @@ export function SavedPage() {
       const userId = await getUserId();
       console.log("[Saved] userId:", userId);
       if (userId) {
-        const data = await fetchSavedProducts(userId).catch((e) => { console.log("[Saved] error:", e?.message); return []; });
+        const data = await fetchSavedProducts(userId).catch((e) => {
+          console.log("[Saved] error:", e?.message);
+          return [];
+        });
         console.log("[Saved] products count:", data.length);
         setProducts(data);
       }
@@ -32,15 +42,10 @@ export function SavedPage() {
     load();
   }, []);
 
-
-
-
   const filteredProducts = useMemo(() => {
     if (curCategory === "All furniture") return products;
 
-    return products.filter((product) =>
-      product.category.includes(curCategory)
-    );
+    return products.filter((product) => product.category.includes(curCategory));
   }, [curCategory, products]);
 
   // dummy 추가 (filtered 기준)
@@ -49,20 +54,25 @@ export function SavedPage() {
     displayProducts.push({ id: "dummy" } as any);
   }
 
-
-
-
-
   return (
-    <View style={{ flex: 1, alignItems: "center" }} >
-      {loading ?
-        <LoadingScreen /> :
-
+    <View style={{ flex: 1, alignItems: "center" }}>
+      {loading ? (
+        <LoadingScreen />
+      ) : (
         <>
           {/* 상단 */}
           <View style={{ width: "100%" }}>
             <View style={styles.topBar}>
-              <Text style={{ fontSize: 18, letterSpacing: 0.1, fontFamily: "NotoSans_700Bold" }}> Saved </Text>
+              <Text
+                style={{
+                  fontSize: 18,
+                  letterSpacing: 0.1,
+                  fontFamily: "NotoSans_700Bold",
+                }}
+              >
+                {" "}
+                Saved{" "}
+              </Text>
             </View>
           </View>
 
@@ -73,20 +83,26 @@ export function SavedPage() {
           <View style={{ flex: 1, width: "100%" }}>
             {/* 태그 필터 */}
             <ScrollView
-             horizontal
-             showsHorizontalScrollIndicator={false}
-             contentContainerStyle={styles.categoryBar}>
-              {
-                furnitureTypes.map((type) => (
-                  <CategoryButton key={type} text={type} isSelected={curCategory === type} onPress={()=>setCurCategory(type)}/>
-                ))
-              }
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryBar}
+            >
+              {furnitureTypes.map((type) => (
+                <CategoryButton
+                  key={type}
+                  text={type}
+                  isSelected={curCategory === type}
+                  onPress={() => setCurCategory(type)}
+                />
+              ))}
             </ScrollView>
 
             {/* 저장된 항목들 */}
             <FlatList
               data={displayProducts}
-              keyExtractor={(item, index) => item.id?.toString() ?? `dummy-${index}`}
+              keyExtractor={(item, index) =>
+                item.id?.toString() ?? `dummy-${index}`
+              }
               renderItem={({ item }) =>
                 item.id === "dummy" ? (
                   <SavedProductCardDummy />
@@ -95,7 +111,28 @@ export function SavedPage() {
                     product={item}
                     onPress={() => {
                       // #region agent log
-                      fetch("http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"1e43da"},body:JSON.stringify({sessionId:"1e43da",runId:"route-debug-1",hypothesisId:"H1",location:"pages/04_saved/ui.tsx:onPressCard",message:"saved card pressed",data:{itemId:item.id,pushPathname:"/product/[id]"},timestamp:Date.now()})}).catch(()=>{});
+                      fetch(
+                        "http://127.0.0.1:7401/ingest/2fe98e00-895c-40f0-a2aa-b86b1918cc6a",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            "X-Debug-Session-Id": "1e43da",
+                          },
+                          body: JSON.stringify({
+                            sessionId: "1e43da",
+                            runId: "route-debug-1",
+                            hypothesisId: "H1",
+                            location: "pages/04_saved/ui.tsx:onPressCard",
+                            message: "saved card pressed",
+                            data: {
+                              itemId: item.id,
+                              pushPathname: "/product/[id]",
+                            },
+                            timestamp: Date.now(),
+                          }),
+                        },
+                      ).catch(() => {});
                       // #endregion
                       router.push({
                         pathname: "/(main)/[id]",
@@ -110,9 +147,7 @@ export function SavedPage() {
             />
           </View>
         </>
-      }
-
-
+      )}
     </View>
   );
 }
@@ -130,7 +165,7 @@ const styles = StyleSheet.create({
     height: 0.5,
     borderBottomColor: "#D9D9D9",
     borderBottomWidth: 0.5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.5,
     shadowRadius: 5,
     elevation: 2,
@@ -150,5 +185,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     gap: 20,
     paddingVertical: 10,
-  }
+  },
 });
