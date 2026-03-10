@@ -17,6 +17,7 @@ import {
   NotoSans_600SemiBold,
   NotoSans_700Bold,
 } from "@expo-google-fonts/noto-sans";
+import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
 
 import { useAppFonts } from "../shared/assets/fonts";
 
@@ -29,6 +30,8 @@ export default function RootLayout() {
     Poppins_700Bold,
     NotoSans_400Regular,
     NotoSans_700Bold,
+    Inter_400Regular,
+    Inter_600SemiBold,
   });
 
   const [appFontsLoaded] = useAppFonts();
