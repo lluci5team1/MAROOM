@@ -1,28 +1,117 @@
-🪑 MAROOM
+# MAROOM
 
-AI-powered furniture recommendation app with an intuitive swipe interface and 2D floor planning
+Tinder-style furniture recommendation app for college students and young adults furnishing their first space.
 
-MAROOM is a mobile application that revolutionizes furniture shopping by combining Tinder-style swipe mechanics with intelligent AI recommendations and interactive floor planning features.
-📱 Features
-Core Features
+---
 
-Swipe-Based Discovery: Browse furniture with intuitive left/right swipe gestures
-AI-Powered Recommendations: Personalized furniture suggestions based on your preferences
-2D Floor Planning: Visualize furniture arrangements in your space
-Detailed Product Views: Tap-to-flip animation revealing comprehensive furniture information
+## Features (Current Beta)
 
-Planned Features (Phase 2)
+- **Swipe to discover** — left/right swipe to browse furniture; right swipes auto-save to your Liked list
+- **Card flip** — double-tap any card to reveal details
+- **Explore** — image grid with filter modal UI
+- **Saved** — view your liked items by category
+- **Auth** — email signup/login with session tokens
 
-Additional gesture controls (swipe up for extended features)
-Enhanced user interactions
-Advanced filtering options
+---
 
-🛠️ Tech Stack
-Frontend
+## Tech Stack
 
-React Native
-TypeScript
+**Frontend** — `MAROOM/frontend/`
 
-Backend
+| | |
+|---|---|
+| Framework | Expo 54, React Native 0.81.5 |
+| Language | TypeScript |
+| Routing | Expo Router (file-based) |
+| Animation | react-native-reanimated 4.1.1 |
+| Gestures | react-native-gesture-handler |
+| HTTP | axios |
+| Auth storage | expo-secure-store |
+| Architecture | Feature-Sliced Design (FSD) |
 
-PostgreSQL
+**Backend** — `MAROOM/backend/`
+
+| | |
+|---|---|
+| Framework | Spring Boot 4.0.1 |
+| Language | Java 17 |
+| Database | Supabase PostgreSQL (cloud) |
+| Auth | BCrypt + session tokens |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js + npm
+- Expo Go app on your phone or an iOS/Android simulator
+- Java 17
+- Access to the Supabase database (ask a backend for credentials)
+
+### Frontend
+
+```bash
+cd MAROOM/frontend
+npm install
+```
+
+Create a `.env.local` file with your machine's local IP:
+
+```
+EXPO_PUBLIC_API_URL=http://YOUR_LOCAL_IP:8080
+```
+
+```bash
+npm start        # scan QR with Expo Go
+npm run ios      # iOS simulator
+npm run android  # Android emulator
+```
+
+### Backend
+
+```bash
+cd MAROOM/backend
+./mvnw spring-boot:run
+```
+
+Runs on port **8080**. Requires the Supabase connection configured in `src/main/resources/application.properties`.
+
+---
+
+## Project Structure
+
+```
+MAROOM/
+├── frontend/
+│   └── src/
+│       ├── app/       # Expo Router routes
+│       ├── pages/     # Full screens
+│       ├── widgets/   # Multi-feature UI blocks
+│       ├── features/  # Isolated feature logic
+│       ├── entities/  # Domain types & API functions
+│       └── shared/    # API client, config, reusable UI
+└── backend/
+    └── src/main/java/com/maroom/maroom/
+        ├── controller/
+        ├── entity/
+        ├── repository/
+        └── service/
+```
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/auth/signup` | Register new user |
+| POST | `/auth/login` | Login, returns session token |
+| GET | `/api/furniture-items` | All furniture items |
+| POST | `/swipe` | Record swipe; RIGHT auto-saves to Liked list |
+| GET | `/saved/{userId}` | Fetch user's saved items |
+| POST/GET | `/preferences` | Save/fetch onboarding quiz results |
+
+---
+
+
