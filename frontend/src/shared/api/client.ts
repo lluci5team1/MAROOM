@@ -3,7 +3,7 @@ import axios from "axios";
 import { getToken } from "./token";
 
 export const apiClient = axios.create({
-  baseURL: "http://172.20.10.3:8080",
+  baseURL: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080",
   headers: {
     "Content-Type": "application/json",
   },
