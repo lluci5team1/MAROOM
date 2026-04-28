@@ -14,4 +14,5 @@ export const icons = {
   google: require("./google.png"),
   onboarding_image: require("./onboarding_image.png"),
   maroon_onboarding: require("./maroon_onboarding.png"),
+  LOGO2: require("./MAROOM_LOGO2.png"),
 };

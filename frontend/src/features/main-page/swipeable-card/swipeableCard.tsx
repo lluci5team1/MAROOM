@@ -83,9 +83,9 @@ const styles = {
   },
   cardContainer: {
     position: "absolute" as const,
-    width: 300,
-    height: 450,
-    top: 0,
+    width: 332,
+    height: 480,
+    top: 50,
   },
   card: {
     position: "absolute" as const,

@@ -13,6 +13,10 @@ import {
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
 import {
+  Manrope_800ExtraBold,
+  Manrope_700Bold,
+} from "@expo-google-fonts/manrope";
+import {
   NotoSans_400Regular,
   NotoSans_600SemiBold,
   NotoSans_700Bold,
@@ -23,6 +27,8 @@ import { useAppFonts } from "../shared/assets/fonts";
 
 export default function RootLayout() {
   const [googleFontsLoaded] = useFonts({
+    Manrope_800ExtraBold,
+    Manrope_700Bold,
     Poppins_300Light,
     Poppins_400Regular,
     Poppins_500Medium,

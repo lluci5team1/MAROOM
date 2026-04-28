@@ -1,6 +1,6 @@
 // widgets/swipe-card-deck/ui/SwipeCardDeck.tsx
-import { View } from "react-native";
-import { useState } from "react";
+import { View, StyleSheet } from "react-native";
+import { useEffect, useState } from "react";
 import { useSharedValue, SharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
 import { ProductCard } from "../../shared/ui/ProductCard";
@@ -26,8 +26,16 @@ export function SwipeCardDeck({ products, userId }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const animatedValues = useSharedValue(0);
   const [swipeActions, setSwipeActions] = useState<SwipeActions | null>(null);
+  const [activePress, setActivePress] = useState<"like" | "dislike" | null>(null);
+  const ACTIVE_PRESS_MS = 420;
+  const SWIPE_TRIGGER_DELAY_MS = 130;
 
   const MAX = 4;
+
+  useEffect(() => {
+    setData([...products, ...products]);
+    setCurrentIndex(0);
+  }, [products]);
 
   const handleSwiped = (direction: "LEFT" | "RIGHT", item: Product) => {
     setCurrentIndex((i) => i + 1);
@@ -38,7 +46,7 @@ export function SwipeCardDeck({ products, userId }: Props) {
   };
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+    <View style={styles.container}>
       {data.map((item, index) => {
         if (index < currentIndex || index > currentIndex + MAX) return null;
 
@@ -61,28 +69,50 @@ export function SwipeCardDeck({ products, userId }: Props) {
       })}
 
       {/* External buttons */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 40,
-          flexDirection: "row",
-          gap: 60,
-        }}
-      >
+      <View style={styles.actions}>
         <RoundButton
           icon={icons.X}
           variant="dislike"
+          isActive={activePress === "dislike"}
           translateX={swipeActions?.translateX}
-          onPress={() => swipeActions?.left?.()}
+          onPress={() => {
+            setActivePress("dislike");
+            setTimeout(() => {
+              swipeActions?.left?.();
+            }, SWIPE_TRIGGER_DELAY_MS);
+            setTimeout(() => setActivePress(null), ACTIVE_PRESS_MS);
+          }}
         />
 
         <RoundButton
           icon={icons.heart}
           variant="like"
+          isActive={activePress === "like"}
           translateX={swipeActions?.translateX}
-          onPress={() => swipeActions?.right?.()}
+          onPress={() => {
+            setActivePress("like");
+            setTimeout(() => {
+              swipeActions?.right?.();
+            }, SWIPE_TRIGGER_DELAY_MS);
+            setTimeout(() => setActivePress(null), ACTIVE_PRESS_MS);
+          }}
         />
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actions: {
+    position: "absolute",
+    bottom: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 32,
+  },
+});
