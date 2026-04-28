@@ -9,6 +9,7 @@ import com.maroom.maroom.repository.FurnitureItemRepository;
 import com.maroom.maroom.repository.SavedItemRepository;
 import com.maroom.maroom.repository.SavedListRepository;
 import com.maroom.maroom.repository.SwipeEventRepository;
+import com.maroom.maroom.service.UserEmbeddingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,15 +24,18 @@ public class SwipeController {
     private final SavedListRepository savedListRepository;
     private final SavedItemRepository savedItemRepository;
     private final FurnitureItemRepository furnitureItemRepository;
+    private final UserEmbeddingService userEmbeddingService;
 
     public SwipeController(SwipeEventRepository swipeEventRepository,
                            SavedListRepository savedListRepository,
                            SavedItemRepository savedItemRepository,
-                           FurnitureItemRepository furnitureItemRepository) {
+                           FurnitureItemRepository furnitureItemRepository,
+                           UserEmbeddingService userEmbeddingService) {
         this.swipeEventRepository = swipeEventRepository;
         this.savedListRepository = savedListRepository;
         this.savedItemRepository = savedItemRepository;
         this.furnitureItemRepository = furnitureItemRepository;
+        this.userEmbeddingService = userEmbeddingService;
     }
 
     public static class SwipeRequest {
@@ -85,8 +89,14 @@ public class SwipeController {
         res.put("ok", true);
         res.put("swipeEventId", savedEvent.getId());
         res.put("savedToLiked", savedToLiked);
+        res.put("userEmbedding", userEmbeddingService.recomputeUserEmbedding(req.userId));
 
         return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/user-embedding/{userId}/recompute")
+    public ResponseEntity<UserEmbeddingService.RecomputeResult> recomputeUserEmbedding(@PathVariable UUID userId) {
+        return ResponseEntity.ok(userEmbeddingService.recomputeUserEmbedding(userId));
     }
 
     @GetMapping("/events/{userId}")

@@ -9,5 +9,4 @@ public class MaroomApplication {
     public static void main(String[] args) {
         SpringApplication.run(MaroomApplication.class, args);
     }
-
 }

@@ -2,6 +2,7 @@ package com.maroom.maroom;
 
 import com.maroom.maroom.domain.FurnitureItem;
 import com.maroom.maroom.repository.FurnitureItemRepository;
+import com.maroom.maroom.service.FurnitureEmbeddingService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -14,9 +15,12 @@ import java.nio.charset.StandardCharsets;
 public class CsvDataLoader implements CommandLineRunner {
 
     private final FurnitureItemRepository repo;
+    private final FurnitureEmbeddingService furnitureEmbeddingService;
 
-    public CsvDataLoader(FurnitureItemRepository repo) {
+    public CsvDataLoader(FurnitureItemRepository repo,
+                         FurnitureEmbeddingService furnitureEmbeddingService) {
         this.repo = repo;
+        this.furnitureEmbeddingService = furnitureEmbeddingService;
     }
 
     @Override
@@ -52,7 +56,8 @@ public class CsvDataLoader implements CommandLineRunner {
                 item.setProductUrl(clean(cols[7]));
                 item.setImageUrl(clean(cols[8]));
 
-                repo.save(item);
+                FurnitureItem savedItem = repo.save(item);
+                furnitureEmbeddingService.embedFurniture(savedItem);
             }
         }
     }

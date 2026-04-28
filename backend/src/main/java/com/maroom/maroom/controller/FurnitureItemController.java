@@ -2,6 +2,7 @@ package com.maroom.maroom.controller;
 
 import com.maroom.maroom.domain.FurnitureItem;
 import com.maroom.maroom.repository.FurnitureItemRepository;
+import com.maroom.maroom.service.FurnitureEmbeddingService;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,14 +18,26 @@ import java.util.UUID;
 public class FurnitureItemController {
 
     private final FurnitureItemRepository repo;
+    private final FurnitureEmbeddingService furnitureEmbeddingService;
 
-    public FurnitureItemController(FurnitureItemRepository repo) {
+    public FurnitureItemController(FurnitureItemRepository repo,
+                                   FurnitureEmbeddingService furnitureEmbeddingService) {
         this.repo = repo;
+        this.furnitureEmbeddingService = furnitureEmbeddingService;
     }
 
     @PostMapping
     public FurnitureItem create(@RequestBody FurnitureItem item) {
-        return repo.save(item);
+        FurnitureItem savedItem = repo.save(item);
+        furnitureEmbeddingService.embedFurniture(savedItem);
+        return savedItem;
+    }
+
+    @PostMapping("/embeddings/backfill")
+    public ResponseEntity<FurnitureEmbeddingService.BackfillResult> backfillEmbeddings(
+            @RequestParam(defaultValue = "25") int limit
+    ) {
+        return ResponseEntity.ok(furnitureEmbeddingService.backfillMissingEmbeddings(limit));
     }
 
 
