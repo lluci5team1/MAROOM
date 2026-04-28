@@ -1,15 +1,10 @@
 import { View, Text, Image, StyleSheet } from "react-native";
-//import { Dimensions } from "react-native";
 import { Product } from "../../entities/product/type";
-import { icons } from "../assets/icons";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
     <View style={styles.shadowWrapper}>
       <View style={styles.card}>
-        {/*<View style={styles.backButtonContainer}>
-          <Image source={icons.backButton} style={styles.backButton} />
-        </View>*/}
         <Image
           source={{
             uri: product.imageUrl,
@@ -18,11 +13,15 @@ export function ProductCard({ product }: { product: Product }) {
           resizeMode="cover"
         />
         <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
-            {product.title}
+          <Text style={styles.category} numberOfLines={1} ellipsizeMode="tail">
+            {product.category.toUpperCase()}
           </Text>
-          <Text style={styles.space}>{product.brand}</Text>
-          <Text style={styles.price}>${product.price}</Text>
+          <View style={styles.bottomRow}>
+            <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+              {product.title}
+            </Text>
+            <Text style={styles.price}>${product.price}</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -31,49 +30,56 @@ export function ProductCard({ product }: { product: Product }) {
 
 const styles = StyleSheet.create({
   shadowWrapper: {
-    width: 300,
-    height: 450,
-    borderColor: "#000", // <- 추가함
-    borderRadius: 20, // <-- 추가함
-
-    // shadow lives here
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 6,
+    width: 332,
+    height: 460,
+    borderRadius: 32,
+    shadowColor: "#173B63",
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.16,
+    shadowRadius: 26,
+    elevation: 10,
   },
   card: {
     flex: 1,
     position: "relative",
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    overflow: "hidden", // safe here
+    backgroundColor: "#FFFFFF",
+    borderRadius: 32,
+    overflow: "hidden",
   },
-  /*backButtonContainer: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    top: 12,
-    right: 12,
-    backgroundColor: "white",
-    zIndex: 20,
-    borderRadius: 100,
-  },
-  backButton: {
-    flex: 0.5,
-    paddingTop: 5,
-    justifyContent: "center",
-    aspectRatio: 1,
-    alignSelf: "center",
-  },*/
   image: {
     width: "100%",
-    aspectRatio: 1, // tweak until it looks right
+    height: 374,
     alignSelf: "flex-start",
   },
-  content: { flex: 1, padding: 15, gap: 8 },
-  title: { fontSize: 20, fontFamily: "Poppins_400Medium" },
-  space: { fontSize: 13, fontFamily: "Poppins_400Regular" },
-  price: { fontSize: 27, fontFamily: "Poppins_400SemiBold" },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  category: {
+    fontSize: 12,
+    lineHeight: 14,
+    color: "#7B8798",
+    fontFamily: "Inter_400Regular",
+  },
+  bottomRow: {
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  title: {
+    flex: 1,
+    fontSize: 24,
+    lineHeight: 28,
+    color: "#14233C",
+    fontFamily: "Manrope_800ExtraBold",
+  },
+  price: {
+    fontSize: 20,
+    lineHeight: 24,
+    color: "#1399E5",
+    fontFamily: "Manrope_700Bold",
+  },
 });
