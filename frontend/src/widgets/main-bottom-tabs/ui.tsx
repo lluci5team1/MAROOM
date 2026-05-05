@@ -23,7 +23,7 @@ export function MainBottomTabs({ tabs, activeKey }: Props) {
               source={tab.icon}
               style={[
                 styles.icon,
-                tab.iconSize && { width: tab.iconSize, height: tab.iconSize },
+                tab.iconSize ? { width: tab.iconSize, height: tab.iconSize } : undefined,
                 { tintColor: tab.key === activeKey ? "#2C84C6" : "#8B98A9" },
               ]}
               resizeMode="contain"
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
     backgroundColor: "#fff",
     borderTopLeftRadius: 28,
-    borderTopRightRadius: 50,
+    borderTopRightRadius: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

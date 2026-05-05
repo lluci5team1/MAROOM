@@ -24,7 +24,7 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 640,
     roomType: "Dining Room",
     imageUrl:
-      "https://images.unsplash.com/photo-1616628182509-6f2d9f8f4c12?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1604578762246-41134e37f9cc?auto=format&fit=crop&w=1200&q=80",
     productUrl: "https://example.com/products/oak-dining-table",
   },
   {
