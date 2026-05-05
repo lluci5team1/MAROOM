@@ -1,5 +1,6 @@
 package com.maroom.maroom.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -17,14 +18,20 @@ public class FurnitureItem {
     @UuidGenerator
     private UUID id;
 
+    @Column(length = 1000)
     private String title;
+
     private String category;
     private String brand;
     private String style;
     private String color;
     private Integer price;
     private String roomType;
+
+    @Column(length = 2000)
     private String productUrl;
+
+    @Column(length = 2000)
     private String imageUrl;
 
     public FurnitureItem() {}
