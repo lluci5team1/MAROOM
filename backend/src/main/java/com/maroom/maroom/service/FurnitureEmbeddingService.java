@@ -76,10 +76,12 @@ public class FurnitureEmbeddingService {
             boolean configured,
             boolean storageReady,
             int limit,
+            int batchSize,
             int checked,
             int embedded,
             int skipped,
-            int failed
+            int failed,
+            int batches
     ) {}
 
     public boolean embedFurniture(FurnitureItem item) {
@@ -123,20 +125,31 @@ public class FurnitureEmbeddingService {
     }
 
     public BackfillResult backfillMissingEmbeddings(int requestedLimit) {
+        return backfillMissingEmbeddings(requestedLimit, 25);
+    }
+
+    public BackfillResult backfillMissingEmbeddings(int requestedLimit, int requestedBatchSize) {
         int limit = Math.max(1, Math.min(requestedLimit, 500));
+        int batchSize = Math.max(1, Math.min(requestedBatchSize, 50));
         if (!isConfigured()) {
-            return new BackfillResult(false, false, limit, 0, 0, 0, 0);
+            return new BackfillResult(false, false, limit, batchSize, 0, 0, 0, 0, 0);
         }
         if (!ensureStorage()) {
-            return new BackfillResult(true, false, limit, 0, 0, 0, 0);
+            return new BackfillResult(true, false, limit, batchSize, 0, 0, 0, 0, 0);
         }
 
         int checked = 0;
         int embedded = 0;
         int skipped = 0;
         int failed = 0;
+        int batches = 0;
+        List<FurnitureItem> batch = new ArrayList<>();
 
         for (FurnitureItem item : furnitureItemRepository.findAll()) {
+            if (embedded + failed >= limit) {
+                break;
+            }
+
             checked++;
 
             if (hasCurrentEmbedding(item, contentHash(item))) {
@@ -144,18 +157,26 @@ public class FurnitureEmbeddingService {
                 continue;
             }
 
-            if (embedded + failed >= limit) {
-                break;
-            }
+            batch.add(item);
 
-            if (embedFurniture(item)) {
-                embedded++;
-            } else {
-                failed++;
+            int remaining = limit - embedded - failed;
+            if (batch.size() >= Math.min(batchSize, remaining)) {
+                BatchResult result = embedFurnitureBatchSafely(batch);
+                embedded += result.embedded();
+                failed += result.failed();
+                batches += result.batches();
+                batch.clear();
             }
         }
 
-        return new BackfillResult(true, true, limit, checked, embedded, skipped, failed);
+        if (!batch.isEmpty() && embedded + failed < limit) {
+            BatchResult result = embedFurnitureBatchSafely(batch);
+            embedded += result.embedded();
+            failed += result.failed();
+            batches += result.batches();
+        }
+
+        return new BackfillResult(true, true, limit, batchSize, checked, embedded, skipped, failed, batches);
     }
 
     private boolean isConfigured() {
@@ -235,6 +256,11 @@ public class FurnitureEmbeddingService {
                 Map.of("type", "text", "text", text)
         )));
 
+        return requestEmbeddings(inputs);
+    }
+
+    private List<double[]> requestEmbeddings(List<Map<String, Object>> inputs)
+            throws IOException, InterruptedException {
         Map<String, Object> payload = Map.of(
                 "inputs", inputs,
                 "model", model,
@@ -252,10 +278,82 @@ public class FurnitureEmbeddingService {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("Voyage API returned " + response.statusCode());
+            throw new VoyageApiException(response.statusCode(), response.body());
         }
 
         return parseEmbeddings(response.body());
+    }
+
+    private BatchResult embedFurnitureBatchSafely(List<FurnitureItem> items) {
+        try {
+            int embedded = embedFurnitureBatch(items);
+            return new BatchResult(embedded, items.size() - embedded, 1);
+        } catch (VoyageApiException e) {
+            log.warn("Failed to embed furniture batch of {} items: Voyage API returned {}: {}",
+                    items.size(), e.statusCode(), e.safeBody());
+
+            if (e.statusCode() == 429 || items.size() == 1) {
+                return new BatchResult(0, items.size(), 1);
+            }
+
+            int middle = items.size() / 2;
+            BatchResult left = embedFurnitureBatchSafely(items.subList(0, middle));
+            BatchResult right = embedFurnitureBatchSafely(items.subList(middle, items.size()));
+            return new BatchResult(
+                    left.embedded() + right.embedded(),
+                    left.failed() + right.failed(),
+                    1 + left.batches() + right.batches()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to embed furniture batch of {} items: {}", items.size(), e.getMessage());
+            return new BatchResult(0, items.size(), 1);
+        }
+    }
+
+    private int embedFurnitureBatch(List<FurnitureItem> items) throws IOException, InterruptedException {
+        if (items.isEmpty()) {
+            return 0;
+        }
+
+        List<Map<String, Object>> inputs = new ArrayList<>();
+        for (FurnitureItem item : items) {
+            if (hasText(item.getImageUrl())) {
+                inputs.add(Map.of("content", List.of(
+                        Map.of("type", "image_url", "image_url", item.getImageUrl())
+                )));
+            }
+            inputs.add(Map.of("content", List.of(
+                    Map.of("type", "text", "text", toEmbeddingText(item))
+            )));
+        }
+
+        List<double[]> embeddings = requestEmbeddings(inputs);
+        if (embeddings.size() != inputs.size()) {
+            throw new IllegalStateException(
+                    "Expected " + inputs.size() + " embeddings, got " + embeddings.size()
+            );
+        }
+        int embeddingIndex = 0;
+        int embedded = 0;
+
+        for (FurnitureItem item : items) {
+            double[] imageEmbedding;
+            double[] textEmbedding;
+
+            if (hasText(item.getImageUrl())) {
+                imageEmbedding = embeddings.get(embeddingIndex++);
+                textEmbedding = embeddings.get(embeddingIndex++);
+            } else {
+                textEmbedding = embeddings.get(embeddingIndex++);
+                imageEmbedding = textEmbedding;
+            }
+
+            double[] combinedEmbedding = combine(imageEmbedding, textEmbedding);
+            upsertEmbedding(item, imageEmbedding, textEmbedding, combinedEmbedding, contentHash(item));
+            embedded++;
+        }
+
+        return embedded;
     }
 
     private List<double[]> parseEmbeddings(String body) throws IOException {
@@ -444,5 +542,29 @@ public class FurnitureEmbeddingService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private record BatchResult(int embedded, int failed, int batches) {}
+
+    private static class VoyageApiException extends RuntimeException {
+        private final int statusCode;
+        private final String body;
+
+        private VoyageApiException(int statusCode, String body) {
+            super("Voyage API returned " + statusCode);
+            this.statusCode = statusCode;
+            this.body = body == null ? "" : body;
+        }
+
+        private int statusCode() {
+            return statusCode;
+        }
+
+        private String safeBody() {
+            if (body.length() <= 500) {
+                return body;
+            }
+            return body.substring(0, 500) + "...";
+        }
     }
 }
