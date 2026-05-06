@@ -114,5 +114,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 32,
+    zIndex: 999,
   },
 });

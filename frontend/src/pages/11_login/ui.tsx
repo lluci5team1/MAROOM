@@ -24,29 +24,31 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    if (!agree) {
-      Alert.alert("Please agree to the Terms & Conditions");
-      return;
-    }
-    if (!email || !password) {
-      Alert.alert("Please enter your email and password");
-      return;
-    }
+    // TEMP: bypass login for UI testing
+    router.replace("/home");
+    return;
 
-    try {
-      setLoading(true);
-      const res = await login({ email, password });
-
-      await saveToken(res.token);
-      await saveUserId(res.userId);
-      router.replace("/home");
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ?? "Login failed. Please try again.";
-      Alert.alert("Login Error", message);
-    } finally {
-      setLoading(false);
-    }
+    // if (!agree) {
+    //   Alert.alert("Please agree to the Terms & Conditions");
+    //   return;
+    // }
+    // if (!email || !password) {
+    //   Alert.alert("Please enter your email and password");
+    //   return;
+    // }
+    // try {
+    //   setLoading(true);
+    //   const res = await login({ email, password });
+    //   await saveToken(res.token);
+    //   await saveUserId(res.userId);
+    //   router.replace("/home");
+    // } catch (err: any) {
+    //   const message =
+    //     err?.response?.data?.message ?? "Login failed. Please try again.";
+    //   Alert.alert("Login Error", message);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   return (

@@ -22,6 +22,7 @@ import {
   NotoSans_700Bold,
 } from "@expo-google-fonts/noto-sans";
 import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
+import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold } from "@expo-google-fonts/plus-jakarta-sans";
 
 import { useAppFonts } from "../shared/assets/fonts";
 
@@ -38,6 +39,8 @@ export default function RootLayout() {
     NotoSans_700Bold,
     Inter_400Regular,
     Inter_600SemiBold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_600SemiBold,
   });
 
   const [appFontsLoaded] = useAppFonts();
