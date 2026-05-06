@@ -19,6 +19,7 @@ import {
   unsaveProductForUser,
 } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
+import { MOCK_PRODUCTS, MOCK_PRODUCT_DETAILS } from "../../entities/product/mockData";
 import { getUserId } from "../../shared/api/token";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
@@ -32,6 +33,9 @@ const COLOR_MAP: Record<string, string> = {
   red: "#B83A3A",
   green: "#3D8B57",
   beige: "#D8C7A1",
+  oak: "#C19A6B",
+  walnut: "#5C3D2E",
+  terracotta: "#C27251",
 };
 
 function getColorHex(color: string): string {
@@ -40,6 +44,15 @@ function getColorHex(color: string): string {
     if (lowered.includes(key)) return COLOR_MAP[key];
   }
   return "#D9D9D9";
+}
+
+function getMockProduct(id: string): Product | null {
+  const baseId = id.replace(/-[bc]$/, "");
+  return MOCK_PRODUCTS.find((p) => p.id === baseId) ?? null;
+}
+
+function getMockBaseId(id: string): string {
+  return id.replace(/-[bc]$/, "");
 }
 
 export function ProductDetailPage() {
@@ -56,22 +69,23 @@ export function ProductDetailPage() {
     let mounted = true;
 
     async function load() {
-      if (!id) {
-        setLoading(false);
+      if (!id) { setLoading(false); return; }
+      setLoading(true);
+
+      const mockProduct = getMockProduct(String(id));
+      if (mockProduct) {
+        if (mounted) { setProduct(mockProduct); setLoading(false); }
         return;
       }
 
-      setLoading(true);
       try {
         const [furniture, currentUserId] = await Promise.all([
           fetchFurnitureItem(String(id)),
           getUserId(),
         ]);
-
         if (!mounted) return;
         setProduct(furniture);
         setUserId(currentUserId);
-
         if (currentUserId) {
           const savedItems = await fetchSavedProducts(currentUserId);
           if (!mounted) return;
@@ -85,9 +99,7 @@ export function ProductDetailPage() {
     }
 
     load();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [id]);
 
   const displayPrice = useMemo(() => {
@@ -115,23 +127,16 @@ export function ProductDetailPage() {
 
   async function handleShare() {
     if (!product?.productUrl) return;
-    await Share.share({
-      message: product.productUrl,
-      url: product.productUrl,
-    });
+    await Share.share({ message: product.productUrl, url: product.productUrl });
   }
 
   async function handleOpenWebsite() {
     if (!product?.productUrl) return;
     const canOpen = await Linking.canOpenURL(product.productUrl);
-    if (canOpen) {
-      await Linking.openURL(product.productUrl);
-    }
+    if (canOpen) await Linking.openURL(product.productUrl);
   }
 
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!product) {
     return (
@@ -141,197 +146,285 @@ export function ProductDetailPage() {
     );
   }
 
+  const baseId = getMockBaseId(String(id));
+  const detail = MOCK_PRODUCT_DETAILS[baseId];
+  const primaryHex = getColorHex(product.color);
+  const colorDots = detail?.colors ?? [primaryHex, "#7A5A42", "#3D3D3D"];
+  const specs = detail?.specs ?? [
+    { label: "Dimensions", value: "N/A" },
+    { label: "Weight", value: "N/A" },
+    { label: "Material", value: "N/A" },
+  ];
+  const description =
+    detail?.description ??
+    "A beautifully crafted piece designed to elevate your living space with timeless style and quality materials.";
+
   return (
-    <View style={styles.screen}>
-      <View style={styles.topActions}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color="#111" />
+    <ScrollView
+      style={styles.screen}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {/* Image with overlaid controls */}
+      <View style={styles.imageWrapper}>
+        <Image
+          source={{ uri: product.imageUrl || product.productUrl }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+
+        {/* Back button top-left */}
+        <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={20} color="#333" />
         </Pressable>
-        <Pressable onPress={handleShare} hitSlop={10}>
-          <Ionicons name="share-social-outline" size={24} color="#111" />
+
+        {/* Share button top-right */}
+        <Pressable style={styles.shareButton} onPress={handleShare} hitSlop={8}>
+          <Ionicons name="share-social-outline" size={20} color="#333" />
+        </Pressable>
+
+        {/* Dot indicators bottom-center */}
+        <View style={styles.dotsRow}>
+          <View style={[styles.dot, styles.dotActive]} />
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+        </View>
+
+        {/* Heart button bottom-right */}
+        <Pressable style={styles.heartButton} onPress={handleToggleSave} hitSlop={8}>
+          <Ionicons
+            name={isSaved ? "heart" : "heart-outline"}
+            size={20}
+            color={isSaved ? "#E53935" : "#018ABD"}
+          />
         </Pressable>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.imageWrapper}>
-          <Image
-            source={{ uri: product.imageUrl || product.productUrl }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-
-          <Pressable
-            style={styles.heartButton}
-            onPress={handleToggleSave}
-            disabled={saving || !userId}
-          >
-            <Ionicons
-              name={isSaved ? "heart" : "heart-outline"}
-              size={22}
-              color={isSaved ? "#018ABD" : "#111"}
-            />
-          </Pressable>
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Brand + Price */}
+        <View style={styles.brandPriceRow}>
+          <Text style={styles.brand}>{product.brand.toUpperCase()}</Text>
+          <Text style={styles.price}>{displayPrice}</Text>
         </View>
 
         <Text style={styles.title}>{product.title}</Text>
         <Text style={styles.category}>{product.category}</Text>
-        <Text style={styles.price}>{displayPrice}</Text>
 
+        {/* Color */}
+        <Text style={styles.sectionLabel}>COLOR</Text>
         <View style={styles.colorRow}>
-          <View
-            style={[
-              styles.colorDot,
-              styles.selectedDot,
-              { backgroundColor: getColorHex(product.color) },
-            ]}
-          />
-          <View style={[styles.colorDot, { backgroundColor: "#B4B4B4" }]} />
-          <View style={[styles.colorDot, { backgroundColor: "#D9D9D9" }]} />
+          {colorDots.map((hex, i) => (
+            <View
+              key={i}
+              style={[styles.colorDot, { backgroundColor: hex }, i === 0 && styles.colorDotSelected]}
+            />
+          ))}
         </View>
 
-        <Text style={styles.colorText}>
-          Color: <Text style={styles.colorValue}>{product.color}</Text>
-        </Text>
+        {/* Specifications */}
+        <View style={styles.specsCard}>
+          <Text style={styles.specsTitle}>SPECIFICATIONS</Text>
+          {specs.map((spec, i) => (
+            <View key={spec.label}>
+              {i > 0 && <View style={styles.specDivider} />}
+              <View style={styles.specRow}>
+                <Text style={styles.specKey}>{spec.label}</Text>
+                <Text style={styles.specValue}>{spec.value}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
-        <Pressable style={styles.infoRow}>
-          <Text style={styles.infoText}>Product details</Text>
-          <Ionicons name="chevron-down" size={20} color="#7B7B7B" />
-        </Pressable>
-        <View style={styles.separator} />
+        {/* The Design */}
+        <Text style={styles.sectionLabel}>THE DESIGN</Text>
+        <Text style={styles.description}>{description}</Text>
 
-        <Pressable style={styles.infoRow}>
-          <Text style={styles.infoText}>Measurements</Text>
-          <Ionicons name="chevron-down" size={20} color="#7B7B7B" />
-        </Pressable>
-
+        {/* CTA */}
         <Pressable style={styles.websiteButton} onPress={handleOpenWebsite}>
           <Text style={styles.websiteButtonText}>View on Website</Text>
+          <Ionicons name="open-outline" size={17} color="#fff" style={{ marginLeft: 7 }} />
         </Pressable>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  topActions: {
-    height: 56,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
+  screen: { flex: 1, backgroundColor: "#fff" },
+  scrollContent: { paddingBottom: 48 },
+
   imageWrapper: {
-    position: "relative",
+    margin: 16,
+    borderRadius: 24,
+    overflow: "hidden",
   },
   image: {
     width: "100%",
-    height: 290,
-    borderRadius: 12,
-    backgroundColor: "#E7E7E7",
+    height: 340,
+    backgroundColor: "#F1F5F9",
   },
-  heartButton: {
+  backButton: {
     position: "absolute",
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFFD9",
+    top: 14,
+    left: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
   },
-  title: {
-    marginTop: 10,
-    fontSize: 22,
-    lineHeight: 28,
-    color: "#2A2A2A",
-    fontFamily: "Poppins_600SemiBold",
+  shareButton: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  category: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#6A6A6A",
-    fontFamily: "Poppins_300Light",
-  },
-  price: {
-    marginTop: 6,
-    fontSize: 30,
-    color: "#2A2A2A",
-    fontFamily: "Poppins_600SemiBold",
-  },
-  colorRow: {
-    marginTop: 8,
+  dotsRow: {
+    position: "absolute",
+    bottom: 56,
+    left: 0,
+    right: 0,
     flexDirection: "row",
-    gap: 10,
+    justifyContent: "center",
+    gap: 6,
   },
-  colorDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
-  selectedDot: {
-    borderWidth: 2,
-    borderColor: "#00AEEF",
+  dotActive: { backgroundColor: "#fff" },
+  heartButton: {
+    position: "absolute",
+    bottom: 14,
+    right: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  colorText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#2E2E2E",
-    fontFamily: "Poppins_300Light",
-  },
-  colorValue: {
-    fontFamily: "Poppins_600SemiBold",
-  },
-  infoRow: {
-    marginTop: 14,
+
+  content: { paddingHorizontal: 20 },
+
+  brandPriceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 6,
   },
-  infoText: {
+  brand: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#018ABD",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+  },
+  price: {
     fontSize: 22,
-    color: "#2D2D2D",
-    fontFamily: "Poppins_300Light",
+    color: "#018ABD",
+    fontFamily: "PlusJakartaSans_600SemiBold",
   },
-  separator: {
-    marginTop: 8,
-    borderBottomColor: "#DCDCDC",
-    borderBottomWidth: 1,
+  title: {
+    fontSize: 26,
+    color: "#111827",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    lineHeight: 34,
+    marginBottom: 4,
   },
+  category: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "PlusJakartaSans_400Regular",
+    marginBottom: 18,
+  },
+
+  sectionLabel: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111827",
+    marginBottom: 10,
+  },
+  colorRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 22,
+  },
+  colorDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  colorDotSelected: {
+    borderWidth: 2.5,
+    borderColor: "#018ABD",
+  },
+
+  specsCard: {
+    backgroundColor: "#F1F5FA",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 22,
+    gap: 0,
+  },
+  specsTitle: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  specRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  specDivider: {
+    height: 1,
+    backgroundColor: "#DDE3EC",
+  },
+  specKey: {
+    fontSize: 14,
+    color: "#374151",
+    fontFamily: "PlusJakartaSans_400Regular",
+  },
+  specValue: {
+    fontSize: 14,
+    color: "#111827",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+  },
+
+  description: {
+    fontSize: 14,
+    color: "#4B5563",
+    fontFamily: "PlusJakartaSans_400Regular",
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+
   websiteButton: {
-    marginTop: 14,
-    marginBottom: 0,
-    height: 48,
-    borderRadius: 28,
-    backgroundColor: "#078FC1",
+    height: 54,
+    borderRadius: 30,
+    backgroundColor: "#018ABD",
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
   websiteButtonText: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontFamily: "Poppins_600SemiBold",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  errorText: {
-    color: "#444",
+    color: "#fff",
     fontSize: 16,
-    fontFamily: "Poppins_300Light",
+    fontFamily: "PlusJakartaSans_600SemiBold",
   },
+
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
+  errorText: { color: "#444", fontSize: 16, fontFamily: "PlusJakartaSans_400Regular" },
 });
