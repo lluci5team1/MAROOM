@@ -1,23 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { SvgXml } from "react-native-svg";
-
-const SPINNER_XML = `<svg width="144" height="140" viewBox="0 0 144 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect x="65" width="12" height="44" rx="5" fill="#609AFF"/>
-<rect x="66" y="96" width="12" height="44" rx="5" fill="#D6E5FC"/>
-<rect width="11.8995" height="44.0606" rx="5" transform="matrix(0.893123 0.449813 -0.483329 0.875439 101.795 4.58984)" fill="#6295FF"/>
-<rect width="11.8995" height="44.0606" rx="5" transform="matrix(0.893123 0.449813 -0.483329 0.875439 53.7354 87.2129)" fill="#BED9FC"/>
-<rect width="11.9" height="44.0587" rx="5" transform="matrix(0.893612 -0.44884 0.482324 0.875993 80.499 93.7012)" fill="#ECF3FF"/>
-<rect width="11.9" height="44.0587" rx="5" transform="matrix(0.893612 -0.44884 0.482324 0.875993 30.0371 9.93164)" fill="#77A5FF"/>
-<rect width="11.6667" height="44.9507" rx="5" transform="matrix(0.60871 -0.793393 0.819276 0.573399 7.47656 34.6387)" fill="#82B1FF"/>
-<rect width="11.6667" height="44.9507" rx="5" transform="matrix(0.60871 -0.793393 0.819276 0.573399 92.5137 86.1416)" fill="#1172FF"/>
-<rect width="11.5834" height="45.2605" rx="5" transform="matrix(0.459935 0.887953 -0.904148 0.427219 134.638 30.9834)" fill="#418AFF"/>
-<rect width="11.5834" height="45.2605" rx="5" transform="matrix(0.459935 0.887953 -0.904148 0.427219 48.1309 75.7383)" fill="#A4CBFF"/>
-<rect width="11.4755" height="45.6559" rx="5" transform="matrix(-0.0128205 0.999918 -0.999932 -0.0116954 143.12 63.6484)" fill="#2C73FF"/>
-<rect width="11.4755" height="45.6559" rx="5" transform="matrix(-0.0128205 0.999918 -0.999932 -0.0116954 45.7998 63.6484)" fill="#95BBFF"/>
-</svg>`;
-
-const AnimatedView = Animated.createAnimatedComponent(View);
+import { icons } from "../assets/icons";
 
 export function LoadingScreen() {
   const rotate = useRef(new Animated.Value(0)).current;
@@ -41,9 +24,11 @@ export function LoadingScreen() {
 
   return (
     <View style={styles.container}>
-      <AnimatedView style={{ transform: [{ rotate: spin }] }}>
-        <SvgXml xml={SPINNER_XML} width={72} height={72} />
-      </AnimatedView>
+      <Animated.Image
+        source={icons.new_spinner}
+        style={[styles.spinner, { transform: [{ rotate: spin }] }]}
+        resizeMode="contain"
+      />
       <Text style={styles.title}>Loading...</Text>
       <Text style={styles.subtitle}>Please wait</Text>
     </View>
@@ -56,6 +41,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
+  },
+  spinner: {
+    width: 72,
+    height: 72,
   },
   title: {
     marginTop: 10,

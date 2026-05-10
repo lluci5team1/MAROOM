@@ -8,6 +8,7 @@ import {
   Text,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -49,6 +50,11 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
     if (query && !item.title.toLowerCase().includes(query)) return false;
     if (filter.brand && item.brand.toLowerCase() !== filter.brand.toLowerCase()) return false;
     if (item.price < filter.priceRange.min || item.price > filter.priceRange.max) return false;
+    if (filter.style.length > 0) {
+      const itemStyle = item.style.toLowerCase();
+      const match = filter.style.some((s) => itemStyle.includes(s.toLowerCase()) || s.toLowerCase().includes(itemStyle));
+      if (!match) return false;
+    }
     return true;
   });
   if (filter.sortBy === "price-high-to-low") result = [...result].sort((a, b) => b.price - a.price);
@@ -58,16 +64,41 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
 
 // ─── Block renderers ──────────────────────────────────────────────────────────
 function GridImage({ item, width, height, router }: { item: Product; width: number; height: number; router: any }) {
+  const [loading, setLoading] = useState(false);
+
+  function handlePress() {
+    setLoading(true);
+    setTimeout(() => {
+      router.push({ pathname: "/(main)/[id]", params: { id: item.id } });
+      setLoading(false);
+    }, 450);
+  }
+
   return (
-    <Pressable onPress={() => router.push({ pathname: "/(main)/[id]", params: { id: item.id } })}>
+    <Pressable onPress={handlePress}>
       <Image
         source={{ uri: item.imageUrl }}
         style={{ width, height, borderRadius: 14, backgroundColor: "#F1F5F9" }}
         resizeMode="cover"
       />
+      {loading && (
+        <View style={gridStyles.loadingOverlay}>
+          <ActivityIndicator color="#018ABD" size="small" />
+        </View>
+      )}
     </Pressable>
   );
 }
+
+const gridStyles = StyleSheet.create({
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
 
 function BlockFeaturedLeft({ items, router }: { items: Product[]; router: any }) {
   return (

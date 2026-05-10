@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Modal,
   View,
@@ -6,33 +6,29 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  TextInput,
   Image,
   Dimensions,
+  Animated,
 } from "react-native";
+
+const SHEET_HEIGHT = Dimensions.get("window").height * (3 / 4);
+import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { icons } from "../../../shared/assets/icons";
-import { FilterRow } from "./FilterRow";
 import { PriceSlider } from "./PriceSlider";
 import {
   FilterState,
   DEFAULT_FILTER,
-  FILTER_OPTIONS,
-  COLOR_GROUPS,
-  BRAND_IMAGES,
   SortOption,
   PriceRange,
+  PRICE_MAX,
+  FILTER_OPTIONS,
+  STYLE_OPTIONS,
+  FLAT_COLOR_OPTIONS,
+  BRAND_OPTIONS,
 } from "../model/type";
 
-type Section = "brand" | "category" | "color" | "sortBy" | null;
-
-const SECTION_LABELS: Record<Exclude<Section, null>, string> = {
-  brand: "Brand",
-  category: "Category",
-  color: "Color",
-  sortBy: "Sort By",
-};
+type Section = "category" | "style" | "color" | "brand" | null;
 
 type Props = {
   visible: boolean;
@@ -40,525 +36,579 @@ type Props = {
   onApply: (filter: FilterState) => void;
 };
 
-// TEMP: brand search until backend search API is connected
-function searchBrandTEMP(query: string): string[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return FILTER_OPTIONS.brands;
-  return FILTER_OPTIONS.brands.filter((b) => b.toLowerCase().includes(q));
-}
-
-function formatMultiSelected(values: string[]): string | undefined {
-  if (values.length === 0) return undefined;
-  if (values.length === 1) return values[0];
-  return `${values.length} selected`;
-}
-
 export function FilterModal({ visible, onClose, onApply }: Props) {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER);
   const [activeSection, setActiveSection] = useState<Section>(null);
-  const [brandQuery, setBrandQuery] = useState("");
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  function clearAll() {
-    setFilter(DEFAULT_FILTER);
-    setBrandQuery("");
-  }
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  function handleClose() {
-    if (activeSection !== null) {
-      setActiveSection(null);
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 0, duration: 320, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 320, useNativeDriver: true }),
+      ]).start();
     } else {
-      onClose();
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: SHEET_HEIGHT, duration: 260, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: 260, useNativeDriver: true }),
+      ]).start();
     }
+  }, [visible]);
+
+  function reset() {
+    setFilter(DEFAULT_FILTER);
   }
 
-  function selectBrand(value: string) {
-    setFilter((prev) => ({
-      ...prev,
-      brand: prev.brand === value ? undefined : value,
-    }));
+  function handleBack() {
+    if (activeSection !== null) setActiveSection(null);
+    else onClose();
   }
 
-  function selectMultiple(key: "category" | "color", value: string) {
+  function toggleMulti(key: "category" | "style" | "color", val: string) {
     setFilter((prev) => {
-      const current = prev[key];
-      const exists = current.includes(value);
+      const arr = prev[key];
       return {
         ...prev,
-        [key]: exists
-          ? current.filter((v) => v !== value)
-          : [...current, value],
+        [key]: arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val],
       };
     });
   }
 
-  function selectSort(value: SortOption) {
-    setFilter((prev) => ({
-      ...prev,
-      sortBy: prev.sortBy === value ? undefined : value,
-    }));
+  function selectBrand(val: string) {
+    setFilter((prev) => ({ ...prev, brand: prev.brand === val ? undefined : val }));
+  }
+
+  function selectSort(val: SortOption) {
+    setFilter((prev) => ({ ...prev, sortBy: prev.sortBy === val ? undefined : val }));
   }
 
   function handlePriceChange(range: PriceRange) {
     setFilter((prev) => ({ ...prev, priceRange: range }));
   }
 
-  function toggleGroup(label: string) {
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
-  }
+  const maxLabel =
+    filter.priceRange.max >= PRICE_MAX
+      ? "$5,000+"
+      : `$${filter.priceRange.max.toLocaleString()}`;
+  const priceLabel = `$${filter.priceRange.min} — ${maxLabel}`;
 
-  function getSortLabel(value?: SortOption) {
-    return FILTER_OPTIONS.sortOptions.find((s) => s.value === value)?.label;
-  }
+  const sectionCount =
+    activeSection === "category" ? filter.category.length
+    : activeSection === "style" ? filter.style.length
+    : activeSection === "color" ? filter.color.length
+    : activeSection === "brand" ? (filter.brand ? 1 : 0)
+    : 0;
 
-  const filteredBrands = searchBrandTEMP(brandQuery);
-  const { width } = Dimensions.get("window");
-  // paddingHorizontal: 20 each side = 40, gaps between 3 cols = 2*8 = 16
-  const brandItemWidth = (width - 40 - 16) / 3;
+  const categoryDisplay =
+    filter.category.length === 0
+      ? "All Categories"
+      : filter.category.slice(0, 2).join(", ") + (filter.category.length > 2 ? "..." : "");
+
+  const styleDisplay =
+    filter.style.length === 0
+      ? "All Styles"
+      : filter.style.slice(0, 2).join(", ") + (filter.style.length > 2 ? "..." : "");
+
+  const firstColor = FLAT_COLOR_OPTIONS.find((c) => c.name === filter.color[0]);
+  const colorDisplay = filter.color.length === 0 ? "All Colors" : filter.color[0];
+
+  const brandDisplay = filter.brand ?? "All Brands";
+
+  const sectionTitles: Record<Exclude<Section, null>, string> = {
+    category: "Category",
+    style: "Style",
+    color: "Color",
+    brand: "Brand",
+  };
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
+      transparent
       statusBarTranslucent
-      presentationStyle="fullScreen"
-      onRequestClose={handleClose}
+      onRequestClose={handleBack}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView
-          style={[
-            styles.safeArea,
-            {
-              paddingTop: Math.max(insets.top, 16),
-              paddingBottom: Math.max(insets.bottom, 24),
-            },
-          ]}
-          edges={[]}
-        >
+        <Pressable style={styles.overlay} onPress={handleBack} />
+        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={styles.handle} />
           {/* Header */}
           <View style={styles.header}>
-            <Pressable onPress={handleClose} style={styles.closeButton}>
+            <Pressable onPress={handleBack} style={styles.headerBtn} hitSlop={12}>
               {activeSection !== null ? (
-                <Text style={styles.backText}>‹</Text>
+                <Ionicons name="chevron-back" size={22} color="#111" />
               ) : (
-                <Text style={styles.closeText}>✕</Text>
+                <Ionicons name="close" size={22} color="#111" />
               )}
             </Pressable>
-
-            {/* Centered title - absolutely positioned so it doesn't shift */}
-            <View style={StyleSheet.absoluteFill} pointerEvents="none">
-              <View style={styles.titleCenter}>
-                <Text style={styles.title}>Filter</Text>
-              </View>
-            </View>
-
-            <Pressable onPress={clearAll}>
-              <Text style={styles.clear}>Clear All</Text>
-            </Pressable>
+            <Text style={styles.headerTitle}>
+              {activeSection !== null ? sectionTitles[activeSection] : "Filter"}
+            </Text>
+            {activeSection === null ? (
+              <Pressable onPress={reset} hitSlop={12}>
+                <Text style={styles.resetText}>Reset</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.headerBtn} />
+            )}
           </View>
 
-          {/* Main screen */}
+          {/* ── Main screen ───────────────────────────────────── */}
           {activeSection === null && (
             <ScrollView
-              style={styles.content}
+              style={styles.scroll}
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollPad}
             >
-              <FilterRow
-                label="Brand"
-                selected={filter.brand}
-                onPress={() => setActiveSection("brand")}
-              />
-              <FilterRow
+              {/* Sort By */}
+              <Text style={styles.sectionLabel}>Sort By</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {FILTER_OPTIONS.sortOptions.map((opt) => {
+                  const active = filter.sortBy === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => selectSort(opt.value)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Price Range */}
+              <View style={styles.priceHeader}>
+                <Text style={styles.sectionLabel}>Price Range</Text>
+                <Text style={styles.priceValue}>{priceLabel}</Text>
+              </View>
+              <PriceSlider onChange={handlePriceChange} />
+
+              {/* Parameters */}
+              <Text style={[styles.sectionLabel, styles.paramsLabel]}>Parameters</Text>
+              <ParamRow
                 label="Category"
-                selected={formatMultiSelected(filter.category)}
+                value={categoryDisplay}
                 onPress={() => setActiveSection("category")}
               />
-              <FilterRow
+              <Divider />
+              <ParamRow
+                label="Style"
+                value={styleDisplay}
+                onPress={() => setActiveSection("style")}
+              />
+              <Divider />
+              <ParamRow
                 label="Color"
-                selected={formatMultiSelected(filter.color)}
+                value={colorDisplay}
+                colorDot={firstColor?.hex}
                 onPress={() => setActiveSection("color")}
               />
-              <FilterRow
-                label="Sort By"
-                selected={getSortLabel(filter.sortBy)}
-                onPress={() => setActiveSection("sortBy")}
+              <Divider />
+              <ParamRow
+                label="Brand"
+                value={brandDisplay}
+                onPress={() => setActiveSection("brand")}
               />
-              <View style={styles.priceSection}>
-                <Text style={styles.priceTitle}>Price Range</Text>
-                <PriceSlider onChange={handlePriceChange} />
-              </View>
             </ScrollView>
           )}
 
-          {/* Brand detail */}
-          {activeSection === "brand" && (
-            <>
-              <Text style={styles.sectionTitle}>{SECTION_LABELS.brand}</Text>
-              <View style={styles.searchBar}>
-                <Image source={icons.search} style={styles.searchIconImg} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search"
-                  placeholderTextColor="#999"
-                  value={brandQuery}
-                  onChangeText={setBrandQuery}
-                />
-              </View>
-              <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.brandGrid}>
-                  {filteredBrands.map((brand) => (
-                    <Pressable
-                      key={brand}
-                      style={[
-                        styles.brandItem,
-                        { width: brandItemWidth },
-                        filter.brand === brand && styles.brandItemSelected,
-                      ]}
-                      onPress={() => selectBrand(brand)}
-                    >
-                      <View
-                        style={[
-                          styles.brandImageBox,
-                          { width: brandItemWidth, height: brandItemWidth },
-                          filter.brand === brand &&
-                            styles.brandImageBoxSelected,
-                        ]}
-                      >
-                        <Image
-                          source={{ uri: BRAND_IMAGES[brand] }}
-                          style={styles.brandImage}
-                          resizeMode="cover"
-                        />
-                        {filter.brand === brand && (
-                          <View style={styles.brandCheckOverlay}>
-                            <Text style={styles.brandCheckMark}>✓</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text
-                        style={[
-                          styles.brandName,
-                          filter.brand === brand && styles.brandNameSelected,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {brand}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </ScrollView>
-            </>
-          )}
-
-          {/* Category detail */}
+          {/* ── Category sub-screen ───────────────────────────── */}
           {activeSection === "category" && (
-            <>
-              <Text style={styles.sectionTitle}>{SECTION_LABELS.category}</Text>
-              <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
-                {FILTER_OPTIONS.categories.map((cat) => (
-                  <CheckboxRow
-                    key={cat}
-                    label={cat}
-                    checked={filter.category.includes(cat)}
-                    onPress={() => selectMultiple("category", cat)}
-                  />
-                ))}
-              </ScrollView>
-            </>
-          )}
-
-          {/* Color detail with dropdown groups */}
-          {activeSection === "color" && (
-            <>
-              <Text style={styles.sectionTitle}>{SECTION_LABELS.color}</Text>
-              <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
-                {COLOR_GROUPS.map((group) => (
-                  <View key={group.label}>
-                    <Pressable
-                      style={groupStyles.header}
-                      onPress={() => toggleGroup(group.label)}
+            <ScrollView
+              style={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollPad}
+            >
+              {FILTER_OPTIONS.categories.map((cat, i) => (
+                <View key={cat}>
+                  {i > 0 && <Divider />}
+                  <Pressable style={styles.checkRow} onPress={() => toggleMulti("category", cat)}>
+                    <Text style={styles.checkLabel}>{cat}</Text>
+                    <View
+                      style={[
+                        styles.checkCircle,
+                        filter.category.includes(cat) && styles.checkCircleActive,
+                      ]}
                     >
-                      <Text style={groupStyles.headerLabel}>{group.label}</Text>
-                      <Text style={groupStyles.chevron}>
-                        {openGroups[group.label] ? "▲" : "▼"}
-                      </Text>
-                    </Pressable>
-                    {openGroups[group.label] &&
-                      group.colors.map((color) => (
-                        <CheckboxRow
-                          key={color}
-                          label={color}
-                          checked={filter.color.includes(color)}
-                          onPress={() => selectMultiple("color", color)}
-                          indent
-                        />
-                      ))}
-                  </View>
-                ))}
-              </ScrollView>
-            </>
+                      {filter.category.includes(cat) && (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      )}
+                    </View>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
           )}
 
-          {/* Sort By detail */}
-          {activeSection === "sortBy" && (
-            <>
-              <Text style={styles.sectionTitle}>{SECTION_LABELS.sortBy}</Text>
-              <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
-                {FILTER_OPTIONS.sortOptions.map(({ label, value }) => (
-                  <CheckboxRow
-                    key={value}
-                    label={label}
-                    checked={filter.sortBy === value}
-                    onPress={() => selectSort(value)}
-                  />
-                ))}
-              </ScrollView>
-            </>
+          {/* ── Style sub-screen ──────────────────────────────── */}
+          {activeSection === "style" && (
+            <ScrollView
+              style={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollPad, { gap: 10 }]}
+            >
+              {STYLE_OPTIONS.map((s) => (
+                <ItemCard
+                  key={s.name}
+                  imageUri={s.imageUrl}
+                  name={s.name}
+                  subtitle={s.subtitle}
+                  selected={filter.style.includes(s.name)}
+                  onPress={() => toggleMulti("style", s.name)}
+                />
+              ))}
+            </ScrollView>
           )}
 
-          {/* Apply button */}
+          {/* ── Color sub-screen ──────────────────────────────── */}
+          {activeSection === "color" && (
+            <ScrollView
+              style={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollPad, { gap: 10 }]}
+            >
+              {FLAT_COLOR_OPTIONS.map((c) => (
+                <ItemCard
+                  key={c.name}
+                  colorDot={c.hex}
+                  name={c.name}
+                  subtitle={c.subtitle}
+                  selected={filter.color.includes(c.name)}
+                  onPress={() => toggleMulti("color", c.name)}
+                />
+              ))}
+            </ScrollView>
+          )}
+
+          {/* ── Brand sub-screen ──────────────────────────────── */}
+          {activeSection === "brand" && (
+            <ScrollView
+              style={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollPad, { gap: 10 }]}
+            >
+              {BRAND_OPTIONS.map((b) => (
+                <ItemCard
+                  key={b.name}
+                  imageUri={b.logoUrl}
+                  name={b.name}
+                  selected={filter.brand === b.name}
+                  onPress={() => selectBrand(b.name)}
+                />
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Apply / Show button */}
           <Pressable
             style={styles.applyButton}
             onPress={() => {
-              setActiveSection(null);
-              onApply(filter);
+              if (activeSection !== null) {
+                setActiveSection(null);
+              } else {
+                onApply(filter);
+              }
             }}
           >
-            <Text style={styles.applyText}>Show Products</Text>
+            <Text style={styles.applyText}>
+              {activeSection !== null
+                ? `Apply Selection${sectionCount > 0 ? ` (${sectionCount})` : ""}`
+                : "Show Products"}
+            </Text>
           </Pressable>
-        </SafeAreaView>
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );
 }
 
-function CheckboxRow({
+// ── Shared sub-components ────────────────────────────────────────────────────
+
+function ParamRow({
   label,
-  checked,
+  value,
+  colorDot,
   onPress,
-  indent = false,
 }: {
   label: string;
-  checked: boolean;
+  value: string;
+  colorDot?: string;
   onPress: () => void;
-  indent?: boolean;
 }) {
   return (
-    <Pressable
-      style={[checkboxStyles.row, indent && checkboxStyles.rowIndent]}
-      onPress={onPress}
-    >
-      <View style={[checkboxStyles.box, checked && checkboxStyles.boxChecked]}>
-        {checked && <Text style={checkboxStyles.checkMark}>✓</Text>}
+    <Pressable style={styles.paramRow} onPress={onPress}>
+      <Text style={styles.paramLabel}>{label}</Text>
+      <View style={styles.paramRight}>
+        {colorDot && <View style={[styles.paramColorDot, { backgroundColor: colorDot }]} />}
+        <Text style={styles.paramValue}>{value}</Text>
+        <Ionicons name="chevron-forward" size={15} color="#018ABD" />
       </View>
-      <Text style={checkboxStyles.label}>{label}</Text>
     </Pressable>
   );
 }
 
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
+function ItemCard({
+  imageUri,
+  colorDot,
+  name,
+  subtitle,
+  selected,
+  onPress,
+}: {
+  imageUri?: string;
+  colorDot?: string;
+  name: string;
+  subtitle?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.itemCard} onPress={onPress}>
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={styles.itemImage} resizeMode="cover" />
+      ) : (
+        <View style={[styles.itemImage, { backgroundColor: colorDot ?? "#ccc" }]} />
+      )}
+      <View style={styles.itemText}>
+        <Text style={styles.itemName}>{name}</Text>
+        {subtitle ? <Text style={styles.itemSubtitle}>{subtitle}</Text> : null}
+      </View>
+      <View style={[styles.radio, selected && styles.radioActive]} />
+    </Pressable>
+  );
+}
+
+// ── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  safeArea: {
+  overlay: {
     flex: 1,
-    backgroundColor: "white",
-    paddingHorizontal: 20,
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
+  sheet: {
+    height: SHEET_HEIGHT,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#D1D5DB",
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
-    height: 32,
+    height: 48,
+    marginBottom: 4,
   },
-  titleCenter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  headerBtn: { width: 32 },
+  headerTitle: {
+    fontSize: 17,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111",
   },
-  closeButton: {
-    width: 28,
-    alignItems: "flex-start",
-  },
-  closeText: {
-    fontSize: 18,
-    color: "#000",
-  },
-  backText: {
-    fontSize: 28,
-    color: "#000",
-    lineHeight: 28,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    fontFamily: "Sansation_700Bold",
-  },
-  clear: {
-    color: "#000",
-    fontWeight: "500",
-    fontFamily: "Sansation_400Regular",
-  },
-  sectionTitle: {
+  resetText: {
     fontSize: 15,
-    color: "#000",
-    fontFamily: "Sansation_400Regular",
+    color: "#018ABD",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    textAlign: "right",
+    width: 48,
+  },
+
+  scroll: { flex: 1 },
+  scrollPad: { paddingTop: 8, paddingBottom: 12 },
+
+  // Sort chips
+  sectionLabel: {
+    fontSize: 15,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111",
     marginBottom: 12,
+    marginTop: 8,
   },
-  content: {
-    flex: 1,
-  },
-  searchBar: {
+  chipsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    borderRadius: 25,
-    paddingHorizontal: 14,
-    height: 40,
-    marginBottom: 16,
-  },
-  searchIconImg: {
-    width: 18,
-    height: 18,
-    tintColor: "#999",
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: "#000",
-  },
-  priceSection: {
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  priceTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: "Sansation_700Bold",
-  },
-  applyButton: {
-    backgroundColor: "#018ABD",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 12,
-  },
-  applyText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  // Brand grid
-  brandGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
+    paddingBottom: 4,
+    marginBottom: 20,
   },
-  brandItem: {
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+  },
+  chipActive: {
+    backgroundColor: "#018ABD",
+    borderColor: "#018ABD",
+  },
+  chipText: {
+    fontSize: 13,
+    fontFamily: "PlusJakartaSans_400Regular",
+    color: "#374151",
+  },
+  chipTextActive: {
+    color: "#fff",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+  },
+
+  // Price range
+  priceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 0,
+  },
+  priceValue: {
+    fontSize: 14,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#018ABD",
+  },
+
+  // Parameters
+  paramsLabel: {
+    marginTop: 24,
+    color: "#6B7280",
+    fontSize: 13,
+  },
+  paramRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  paramLabel: {
+    fontSize: 15,
+    fontFamily: "PlusJakartaSans_400Regular",
+    color: "#111",
+  },
+  paramRight: {
+    flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  brandItemSelected: {},
-  brandImageBox: {
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: "#E8E8E8",
-    borderWidth: 1.5,
-    borderColor: "transparent",
+  paramColorDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
-  brandImageBoxSelected: {
-    borderColor: "#018ABD",
-  },
-  brandImage: {
-    width: "100%",
-    height: "100%",
-  },
-  brandCheckOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(1,138,189,0.35)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandCheckMark: {
-    color: "white",
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  brandName: {
-    fontSize: 12,
-    color: "#444",
-    fontFamily: "Sansation_400Regular",
-    textAlign: "center",
-  },
-  brandNameSelected: {
+  paramValue: {
+    fontSize: 13,
+    fontFamily: "PlusJakartaSans_400Regular",
     color: "#018ABD",
-    fontWeight: "600",
   },
-});
+  divider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+  },
 
-const groupStyles = StyleSheet.create({
-  header: {
+  // Category rows
+  checkRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
+    paddingVertical: 18,
   },
-  headerLabel: {
-    fontSize: 15,
-    color: "#000",
-    fontFamily: "Sansation_400Regular",
+  checkLabel: {
+    fontSize: 16,
+    fontFamily: "PlusJakartaSans_400Regular",
+    color: "#111",
   },
-  chevron: {
-    fontSize: 12,
-    color: "#666",
-  },
-});
-
-const checkboxStyles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    gap: 14,
-  },
-  rowIndent: {
-    paddingLeft: 16,
-  },
-  box: {
-    width: 20,
-    height: 20,
+  checkCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 1.5,
-    borderColor: "#ccc",
-    borderRadius: 3,
+    borderColor: "#D1D5DB",
     alignItems: "center",
     justifyContent: "center",
   },
-  boxChecked: {
+  checkCircleActive: {
     backgroundColor: "#018ABD",
     borderColor: "#018ABD",
   },
-  checkMark: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 14,
+
+  // Item cards (style / color / brand)
+  itemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F6FA",
+    borderRadius: 16,
+    padding: 14,
+    gap: 14,
   },
-  label: {
+  itemImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#D1D5DB",
+  },
+  itemText: {
+    flex: 1,
+    gap: 2,
+  },
+  itemName: {
+    fontSize: 15,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111",
+  },
+  itemSubtitle: {
+    fontSize: 12,
+    fontFamily: "PlusJakartaSans_400Regular",
+    color: "#6B7280",
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+  },
+  radioActive: {
+    backgroundColor: "#018ABD",
+    borderColor: "#018ABD",
+  },
+
+  // Apply button
+  applyButton: {
+    marginTop: 12,
+    height: 54,
+    borderRadius: 30,
+    backgroundColor: "#018ABD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  applyText: {
+    color: "#fff",
     fontSize: 16,
-    color: "#000",
-    fontFamily: "Sansation_400Regular",
+    fontFamily: "PlusJakartaSans_600SemiBold",
   },
 });

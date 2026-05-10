@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 13,
     color: "#444",
-    fontFamily: "Sansation_400Regular",
+    fontFamily: "PlusJakartaSans_400Regular",
   },
   sliderContainer: {
     height: THUMB,

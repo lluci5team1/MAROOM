@@ -1,8 +1,6 @@
-// features/filter/model/type.ts
-
 export type SortOption =
+  | "recommended"
   | "newest"
-  | "oldest"
   | "top-selling"
   | "price-high-to-low"
   | "price-low-to-high";
@@ -13,81 +11,86 @@ export type PriceRange = {
 };
 
 export type FilterState = {
-  brand?: string;       // single select
-  category: string[];   // multi select
-  color: string[];      // multi select
-  sortBy?: SortOption;  // single select
+  brand?: string;
+  category: string[];
+  style: string[];
+  color: string[];
+  sortBy?: SortOption;
   priceRange: PriceRange;
 };
 
-export const PRICE_MIN = 50;
+export const PRICE_MIN = 0;
 export const PRICE_MAX = 5000;
 
 export const DEFAULT_FILTER: FilterState = {
   brand: undefined,
   category: [],
+  style: [],
   color: [],
   sortBy: undefined,
   priceRange: { min: PRICE_MIN, max: PRICE_MAX },
 };
 
 export const FILTER_OPTIONS = {
-  brands: [
-    "IKEA",
-    "Living Spaces",
-    "BEKVÄM",
-    "HEMNES",
-    "NORBERG",
-    "STEFAN",
-    "SOLVINDEN",
-  ],
-  categories: [
-    "Bedroom",
-    "Living Room",
-    "Dining Room",
-    "Kitchen",
-    "Office",
-    "Outdoor",
-  ],
+  categories: ["Seating", "Beds", "Tables", "Storage", "Shelving", "Office", "Decor"],
   sortOptions: [
+    { label: "Recommended", value: "recommended" as SortOption },
     { label: "Newest", value: "newest" as SortOption },
-    { label: "Oldest", value: "oldest" as SortOption },
     { label: "Top Selling", value: "top-selling" as SortOption },
-    { label: "Price: High to Low", value: "price-high-to-low" as SortOption },
-    { label: "Price: Low to High", value: "price-low-to-high" as SortOption },
+    { label: "Price: High–Low", value: "price-high-to-low" as SortOption },
+    { label: "Price: Low–High", value: "price-low-to-high" as SortOption },
   ],
 };
 
-export const COLOR_GROUPS = [
+export const STYLE_OPTIONS = [
   {
-    label: "Neutral Tones",
-    colors: ["White", "Cream/Ivory", "Beige", "Light Gray", "Dark Gray"],
+    name: "Japandi",
+    subtitle: "East meets West",
+    imageUrl: "https://images.unsplash.com/photo-1616047006789-b7af5afb8c20?w=120&h=120&fit=crop",
   },
   {
-    label: "Wood Tones",
-    colors: ["Light Wood", "Medium Wood", "Dark Wood"],
+    name: "Modern",
+    subtitle: "Sleek & Sophisticated",
+    imageUrl: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=120&h=120&fit=crop",
   },
   {
-    label: "Dark & Classic",
-    colors: ["Black", "Charcoal", "Navy"],
+    name: "Minimalist",
+    subtitle: "Less is more",
+    imageUrl: "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=120&h=120&fit=crop",
   },
   {
-    label: "Bold & Bright",
-    colors: ["Red", "Blue", "Green", "Yellow"],
+    name: "Scandinavian",
+    subtitle: "Cozy & Light",
+    imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=120&h=120&fit=crop",
   },
   {
-    label: "Earth Tones",
-    colors: ["Brown", "Tan", "Terracotta"],
+    name: "Boho",
+    subtitle: "Eclectic & Free",
+    imageUrl: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=120&h=120&fit=crop",
+  },
+  {
+    name: "Mid-Century",
+    subtitle: "Retro Revival",
+    imageUrl: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=120&h=120&fit=crop",
+  },
+  {
+    name: "Industrial",
+    subtitle: "Raw & Edgy",
+    imageUrl: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=120&h=120&fit=crop",
   },
 ];
 
-// TEMP: brand image map for UI testing
-export const BRAND_IMAGES: Record<string, string> = {
-  IKEA: "https://picsum.photos/seed/ikea-brand/120/120",
-  "Living Spaces": "https://picsum.photos/seed/livingspaces/120/120",
-  "BEKVÄM": "https://picsum.photos/seed/bekvam/120/120",
-  HEMNES: "https://picsum.photos/seed/hemnes/120/120",
-  NORBERG: "https://picsum.photos/seed/norberg/120/120",
-  STEFAN: "https://picsum.photos/seed/stefan/120/120",
-  SOLVINDEN: "https://picsum.photos/seed/solvinden/120/120",
-};
+export const FLAT_COLOR_OPTIONS = [
+  { name: "Warm Neutral", subtitle: "Beige, Cream, Sand", hex: "#D8C7A1" },
+  { name: "Cool Neutral", subtitle: "Slate, Ash, Mist", hex: "#A9BDCA" },
+  { name: "Vibrant", subtitle: "Cyan, Electric, Pop", hex: "#0097E6" },
+  { name: "Earthy", subtitle: "Sage, Olive, Terracotta", hex: "#5D7A4F" },
+  { name: "B & W", subtitle: "Monochrome, Ink", hex: "#1A1A1A" },
+  { name: "Pastel", subtitle: "Soft Pink, Lavender", hex: "#FFB3C6" },
+];
+
+export const BRAND_OPTIONS = [
+  { name: "IKEA", logoUrl: "https://logo.clearbit.com/ikea.com" },
+  { name: "Amazon", logoUrl: "https://logo.clearbit.com/amazon.com" },
+  { name: "Wayfair", logoUrl: "https://logo.clearbit.com/wayfair.com" },
+];
