@@ -1,7 +1,11 @@
-import { View, Text, Image, StyleSheet, Pressable } from "react-native";
-//import { Dimensions } from "react-native";
+import { View, Text, Image, StyleSheet, Pressable, Dimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Product } from "../../../entities/product/type";
-import { icons } from "../../assets/icons";
+
+const SCREEN_W = Dimensions.get("window").width;
+const H_PAD = 24;
+const GAP = 14;
+export const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - GAP) / 2);
 
 type Props = {
   product: Product;
@@ -10,65 +14,66 @@ type Props = {
 
 export function SavedProductCard({ product, onPress }: Props) {
   return (
-    <Pressable style={styles.shadowWrapper} onPress={onPress}>
-      <View style={styles.card}>
-        {/*<View style={styles.backButtonContainer}>
-          <Image source={icons.backButton} style={styles.backButton} />
-        </View>*/}
+    <Pressable style={styles.card} onPress={onPress}>
+      <View style={styles.imageWrapper}>
         <Image
-          source={{
-            uri: product.imageUrl,
-          }}
+          source={{ uri: product.imageUrl }}
           style={styles.image}
           resizeMode="cover"
         />
-        <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
-            {product.title}
-          </Text>
-          <Text style={styles.space}>{product.brand}</Text>
-          <Text style={styles.price}>${product.price}</Text>
+        <View style={styles.bookmarkBtn}>
+          <Ionicons name="bookmark" size={16} color="#018ABD" />
         </View>
       </View>
+      <Text style={styles.title} numberOfLines={2}>
+        {product.title}
+      </Text>
+      <Text style={styles.price}>${product.price.toFixed(2)}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  shadowWrapper: {
-    width: 160,
-    height: 250,
-    borderColor: "#f8f8f8", // <- 추가함
-    borderWidth: 1,
-    borderRadius: 20, // <-- 추가함
-    marginHorizontal: 16,
-    marginVertical: 3,
-
-    //shadowColor: "#000",
-    //shadowOffset: { width: 0, height: 4 },
-    //shadowOpacity: 0.5,
-    //shadowRadius: 20,
-    //elevation: 3,
-  },
   card: {
-    flex: 1,
-    position: "relative",
-    backgroundColor: "#f8f8f8",
-    borderRadius: 20,
-    overflow: "hidden", // safe here
+    width: CARD_W,
+  },
+  imageWrapper: {
+    width: CARD_W,
+    height: Math.floor(CARD_W * 1.3),
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#F1F5F9",
+    marginBottom: 10,
   },
   image: {
     width: "100%",
-    aspectRatio: 1, // tweak until it looks right
-    alignSelf: "flex-start",
+    height: "100%",
   },
-  content: { flex: 1, padding: 12, gap: 1 },
+  bookmarkBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   title: {
-    fontSize: 10,
-    fontFamily: "Poppins_400SemiBold",
-    textOverflow: "ellipsis",
-    width: "100%",
+    fontSize: 14,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111827",
+    marginBottom: 2,
   },
-  space: { fontSize: 7, fontFamily: "Poppins_400Regular" },
-  price: { fontSize: 8, fontFamily: "Poppins_400SemiBold" },
+  price: {
+    fontSize: 13,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#018ABD",
+  },
 });

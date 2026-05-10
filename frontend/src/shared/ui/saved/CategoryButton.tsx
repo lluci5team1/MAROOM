@@ -1,24 +1,43 @@
-import { View, Text, Image, StyleSheet, ImageSourcePropType, Pressable, } from "react-native";
+import { Pressable, Text, StyleSheet } from "react-native";
 
+type Props = {
+  text: string;
+  isSelected: boolean;
+  onPress?: () => void;
+};
 
-export function CategoryButton({text, isSelected, onPress}: {text: string, isSelected: boolean, onPress?: () => void}) {
+export function CategoryButton({ text, isSelected, onPress }: Props) {
   return (
-    <Pressable onPress={onPress}>
-      <View style={[styles.outer, {backgroundColor: isSelected ?  "#D9EDF5" : "#EDECEC"}]}>
-        <Text style={{color: "#333", fontFamily: "Sansation_400Regular"}}>{text}</Text>
-      </View>
+    <Pressable
+      onPress={onPress}
+      style={[styles.chip, isSelected && styles.chipActive]}
+    >
+      <Text style={[styles.text, isSelected && styles.textActive]}>{text}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  outer:{
-    borderRadius: 22,
-    height: 44,
+  chip: {
+    height: 38,
     paddingHorizontal: 18,
-    paddingTop: 11,
-  }
-}
-);
+    borderRadius: 999,
+    backgroundColor: "#EFEFEF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chipActive: {
+    backgroundColor: "#018ABD",
+  },
+  text: {
+    fontSize: 13,
+    fontFamily: "PlusJakartaSans_400Regular",
+    color: "#374151",
+  },
+  textActive: {
+    color: "#fff",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+  },
+});
 
 export default CategoryButton;

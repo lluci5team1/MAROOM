@@ -1,165 +1,169 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+
 import { Product } from "../../entities/product/type";
+import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { fetchSavedProducts } from "../../entities/product/api";
 import { getUserId } from "../../shared/api/token";
 import CategoryButton from "../../shared/ui/saved/CategoryButton";
-import { SavedProductCard } from "../../shared/ui/saved/SavedProductCard";
-import { SavedProductCardDummy } from "../../shared/ui/saved/SavedProductCardDummy";
-import { LoadingScreen } from "../../shared/ui/LoadingScreen";
+import { SavedProductCard, CARD_W } from "../../shared/ui/saved/SavedProductCard";
+
+const USE_MOCK = true;
+
+const MOCK_SAVED: Product[] = [
+  ...MOCK_PRODUCTS,
+  ...MOCK_PRODUCTS.map((p) => ({ ...p, id: p.id + "-s2" })),
+  ...MOCK_PRODUCTS.map((p) => ({ ...p, id: p.id + "-s3" })),
+];
+
+const CATEGORIES = ["All Items", "Living Room", "Bedroom", "Dining Room", "Office", "Outdoor"];
 
 export function SavedPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [curCategory, setCurCategory] = useState("All furniture");
-
-  const furnitureTypes = [
-    "All furniture",
-    "Chair",
-    "Step",
-    "Lamp",
-    "Bed",
-    "Storage",
-  ];
+  const [curCategory, setCurCategory] = useState("All Items");
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const userId = await getUserId();
-      console.log("[Saved] userId:", userId);
-      if (userId) {
-        const data = await fetchSavedProducts(userId).catch((e) => {
-          console.log("[Saved] error:", e?.message);
-          return [];
-        });
-        console.log("[Saved] products count:", data.length);
-        setProducts(data);
+      if (USE_MOCK) {
+        setProducts(MOCK_SAVED);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      try {
+        const userId = await getUserId();
+        if (userId) {
+          const data = await fetchSavedProducts(userId);
+          setProducts(data);
+        }
+      } catch (e) {
+        setProducts(MOCK_SAVED);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
 
-  const filteredProducts = useMemo(() => {
-    if (curCategory === "All furniture") return products;
-
-    return products.filter((product) => product.category.includes(curCategory));
+  const filtered = useMemo(() => {
+    if (curCategory === "All Items") return products;
+    return products.filter((p) => p.roomType === curCategory);
   }, [curCategory, products]);
 
-  // dummy 추가 (filtered 기준)
-  const displayProducts = [...filteredProducts];
-  if (displayProducts.length % 2 !== 0) {
-    displayProducts.push({ id: "dummy" } as any);
-  }
+  // ensure even columns
+  const displayItems = filtered.length % 2 !== 0 ? [...filtered, null] : filtered;
 
   return (
-    <View style={{ flex: 1, alignItems: "center" }}>
-      {loading ? (
-        <LoadingScreen />
-      ) : (
-        <>
-          {/* 상단 */}
-          <View style={{ width: "100%" }}>
-            <View style={styles.topBar}>
-              <Text
-                style={{
-                  fontSize: 18,
-                  letterSpacing: 0.1,
-                  fontFamily: "NotoSans_700Bold",
-                }}
-              >
-                {" "}
-                Saved{" "}
-              </Text>
-            </View>
-          </View>
+    <View style={styles.screen}>
+      {/* Header */}
+      <Text style={styles.header}>Saved</Text>
+      <View style={styles.divider} />
 
-          {/* 선 */}
-          <View style={styles.line}></View>
+      {/* Category chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chips}
+      >
+        {CATEGORIES.map((cat) => (
+          <CategoryButton
+            key={cat}
+            text={cat}
+            isSelected={curCategory === cat}
+            onPress={() => setCurCategory(cat)}
+          />
+        ))}
+      </ScrollView>
 
-          {/* 본문 */}
-          <View style={{ flex: 1, width: "100%" }}>
-            {/* 태그 필터 */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryBar}
-            >
-              {furnitureTypes.map((type) => (
-                <CategoryButton
-                  key={type}
-                  text={type}
-                  isSelected={curCategory === type}
-                  onPress={() => setCurCategory(type)}
-                />
-              ))}
-            </ScrollView>
-
-            {/* 저장된 항목들 */}
-            <FlatList
-              data={displayProducts}
-              keyExtractor={(item, index) =>
-                item.id?.toString() ?? `dummy-${index}`
-              }
-              renderItem={({ item }) =>
-                item.id === "dummy" ? (
-                  <SavedProductCardDummy />
-                ) : (
-                  <SavedProductCard
-                    product={item}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(main)/[id]",
-                        params: { id: item.id },
-                      })
-                    }
-                  />
-                )
-              }
-              numColumns={2}
-              contentContainerStyle={styles.savedProductHolder}
-            />
-          </View>
-        </>
+      {/* Grid */}
+      {loading ? null : (
+        <FlatList
+          data={displayItems}
+          keyExtractor={(item, i) => item?.id ?? `empty-${i}`}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.grid}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) =>
+            item ? (
+              <SavedProductCard
+                product={item}
+                onPress={() =>
+                  router.push({ pathname: "/(main)/[id]", params: { id: item.id } })
+                }
+              />
+            ) : (
+              <View style={{ width: CARD_W }} />
+            )
+          }
+        />
       )}
+
+      {/* Floating filter button */}
+      <Pressable style={styles.filterButton}>
+        <Ionicons name="options-outline" size={22} color="#fff" />
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    height: 75,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 20,
-    marginHorizontal: 35,
+  screen: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
-  line: {
-    width: "90%",
-    height: 0.5,
-    borderBottomColor: "#D9D9D9",
-    borderBottomWidth: 0.5,
-    shadowColor: "#000",
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 2,
+  header: {
+    fontSize: 20,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111827",
+    textAlign: "center",
+    paddingTop: 12,
+    paddingBottom: 14,
   },
-  categoryBar: {
-    height: 70,
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  chips: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 20,
-    marginVertical: 10,
-    paddingTop: 5,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 52,
   },
-  savedProductHolder: {
-    width: "100%",
+  grid: {
+    paddingHorizontal: 24,
+    paddingBottom: 100,
+    gap: 24,
+  },
+  row: {
+    gap: 14,
+  },
+  filterButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#018ABD",
     alignItems: "center",
-    justifyContent: "space-evenly",
-    gap: 20,
-    paddingVertical: 10,
+    justifyContent: "center",
+    shadowColor: "#018ABD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
