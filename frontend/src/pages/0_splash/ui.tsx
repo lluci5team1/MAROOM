@@ -9,6 +9,10 @@ export function SplashPage() {
     const timer = setTimeout(async () => {
       const token = await getToken();
 
+      // TODO: remove — temporary to preview analyzing animation
+      router.replace("/analyzing");
+      return;
+
       if (token) {
         router.replace("/home");
       } else {
