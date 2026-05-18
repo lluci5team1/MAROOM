@@ -2,21 +2,21 @@ import { View, Text, StyleSheet } from "react-native";
 import { useEffect } from "react";
 import { router } from "expo-router";
 import { Video, ResizeMode } from "expo-av";
-import { getToken } from "../../shared/api/token";
+import { getToken, getOnboardingFlag } from "../../shared/api/token";
 
 export function SplashPage() {
   useEffect(() => {
     const timer = setTimeout(async () => {
       const token = await getToken();
-
-      // TODO: remove — temporary to preview onboarding quiz
-      router.replace("/onboarding");
-      return;
-
-      if (token) {
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+      const hasCompletedOnboarding = await getOnboardingFlag();
+      if (hasCompletedOnboarding) {
         router.replace("/home");
       } else {
-        router.replace("/login");
+        router.replace("/onboarding");
       }
     }, 3000);
 

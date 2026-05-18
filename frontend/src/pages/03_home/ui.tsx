@@ -16,10 +16,9 @@ export function HomePage() {
   useEffect(() => {
     async function load() {
       try {
-        //const [data, id] = await Promise.all([fetchFurnitureItems(), getUserId()]);
-        //setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
-        setProducts(MOCK_PRODUCTS);
-        //setUserId(id);
+        const [data, id] = await Promise.all([fetchFurnitureItems(), getUserId()]);
+        setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
+        setUserId(id);
       } catch (error) {
         console.error("Failed to fetch furniture:", error);
         setProducts(MOCK_PRODUCTS);

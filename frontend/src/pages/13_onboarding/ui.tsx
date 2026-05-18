@@ -12,6 +12,8 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { icons } from "../../shared/assets/icons";
+import { savePreferences } from "../../entities/preferences/api";
+import { getUserId, saveOnboardingFlag } from "../../shared/api/token";
 
 const { width: W } = Dimensions.get("window");
 const BLUE = "#018ABD";
@@ -137,8 +139,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
 
 // ── Step 1: Space type ────────────────────────────────────────────────────────
 
-function SpaceTypeStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const [sel, setSel] = useState<string | null>(null);
+function SpaceTypeStep({ sel, onSel, onNext, onBack }: { sel: string | null; onSel: (v: string) => void; onNext: () => void; onBack: () => void }) {
   return (
     <View style={s.screen}>
       <ProgressBar step={1} />
@@ -149,7 +150,7 @@ function SpaceTypeStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
           <TouchableOpacity
             key={item.label}
             style={s.optionRow}
-            onPress={() => setSel(item.label)}
+            onPress={() => onSel(item.label)}
             activeOpacity={0.8}
           >
             <View style={s.iconCircle}>
@@ -167,8 +168,7 @@ function SpaceTypeStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
 
 // ── Step 2: Space size ────────────────────────────────────────────────────────
 
-function SpaceSizeStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const [sel, setSel] = useState<string | null>(null);
+function SpaceSizeStep({ sel, onSel, onNext, onBack }: { sel: string | null; onSel: (v: string) => void; onNext: () => void; onBack: () => void }) {
   return (
     <View style={s.screen}>
       <ProgressBar step={2} />
@@ -179,7 +179,7 @@ function SpaceSizeStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
           <TouchableOpacity
             key={item.label}
             style={s.optionRow}
-            onPress={() => setSel(item.label)}
+            onPress={() => onSel(item.label)}
             activeOpacity={0.8}
           >
             <View style={s.iconCircle}>
@@ -367,29 +367,68 @@ function BudgetStep({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+const HOME_TYPE_MAP: Record<string, string> = {
+  "Single Family Home": "SINGLE_FAMILY_HOME",
+  "1 Bedroom": "1_BEDROOM",
+  "2 Bedroom": "2_BEDROOM",
+  "Dorm / Studio": "DORM_STUDIO",
+};
+const ROOM_SIZE_MAP: Record<string, string> = {
+  Small: "SMALL", Medium: "MEDIUM", Large: "LARGE",
+};
+const STYLE_MAP: Record<string, string> = {
+  Minimalist: "MINIMALIST", Modern: "MODERN", Scandinavian: "SCANDINAVIAN",
+  "Mid-Century\nModern": "MID_CENTURY", Japandi: "JAPANDI", Boho: "BOHO", Industrial: "INDUSTRIAL",
+};
+const COLOR_MAP: Record<string, string> = {
+  "Warm Neutral": "WARM_NEUTRAL", "Cool Neutral": "COOL_NEUTRAL",
+  "Earthy Tones": "EARTHY_TONES", "Black & White": "BLACK_WHITE",
+  Vibrant: "VIBRANT", Pastel: "PASTEL",
+};
+
 export function OnboardingPage() {
   const [step, setStep] = useState(0);
+  const [spaceType, setSpaceType] = useState<string | null>(null);
+  const [spaceSize, setSpaceSize] = useState<string | null>(null);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [budgetMin, setBudgetMin] = useState(0);
   const [budgetMax, setBudgetMax] = useState(4000);
 
-  const next = () => { if (step < 5) setStep(step + 1); else router.replace("/analyzing"); };
+  const next = async () => {
+    if (step < 5) { setStep(step + 1); return; }
+    try {
+      const userId = await getUserId();
+      if (userId) {
+        await savePreferences({
+          userId,
+          homeType: HOME_TYPE_MAP[spaceType ?? ""] ?? "1_BEDROOM",
+          roomSize: ROOM_SIZE_MAP[spaceSize ?? ""] ?? "MEDIUM",
+          styles: selectedStyles.map((s) => STYLE_MAP[s] ?? s.toUpperCase()),
+          colorPalette: selectedColor ? [COLOR_MAP[selectedColor] ?? selectedColor.toUpperCase()] : ["WARM_NEUTRAL"],
+          minBudget: budgetMin,
+          maxBudget: budgetMax,
+        });
+        await saveOnboardingFlag(true);
+      }
+    } catch (_) {}
+    router.replace("/analyzing");
+  };
   const back = () => setStep(step - 1);
 
   const toggleStyle = (label: string) => {
     setSelectedStyles((prev) =>
       prev.includes(label)
         ? prev.filter((s) => s !== label)
-        : prev.length < 2
+        : prev.length < 3
         ? [...prev, label]
         : prev
     );
   };
 
   if (step === 0) return <WelcomeStep onNext={next} />;
-  if (step === 1) return <SpaceTypeStep onNext={next} onBack={back} />;
-  if (step === 2) return <SpaceSizeStep onNext={next} onBack={back} />;
+  if (step === 1) return <SpaceTypeStep sel={spaceType} onSel={setSpaceType} onNext={next} onBack={back} />;
+  if (step === 2) return <SpaceSizeStep sel={spaceSize} onSel={setSpaceSize} onNext={next} onBack={back} />;
   if (step === 3)
     return <StyleStep selected={selectedStyles} onToggle={toggleStyle} onNext={next} onBack={back} />;
   if (step === 4)

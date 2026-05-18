@@ -14,10 +14,9 @@ import { Product } from "../../entities/product/type";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { fetchSavedProducts } from "../../entities/product/api";
 import { getUserId } from "../../shared/api/token";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 import CategoryButton from "../../shared/ui/saved/CategoryButton";
 import { SavedProductCard, CARD_W } from "../../shared/ui/saved/SavedProductCard";
-
-const USE_MOCK = true;
 
 const MOCK_SAVED: Product[] = [
   ...MOCK_PRODUCTS,
@@ -36,16 +35,13 @@ export function SavedPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      if (USE_MOCK) {
-        setProducts(MOCK_SAVED);
-        setLoading(false);
-        return;
-      }
       try {
         const userId = await getUserId();
         if (userId) {
           const data = await fetchSavedProducts(userId);
-          setProducts(data);
+          setProducts(data.length > 0 ? data : MOCK_SAVED);
+        } else {
+          setProducts(MOCK_SAVED);
         }
       } catch (e) {
         setProducts(MOCK_SAVED);
@@ -63,6 +59,8 @@ export function SavedPage() {
 
   // ensure even columns
   const displayItems = filtered.length % 2 !== 0 ? [...filtered, null] : filtered;
+
+  if (loading) return <LoadingScreen />;
 
   return (
     <View style={styles.screen}>
@@ -87,8 +85,7 @@ export function SavedPage() {
       </ScrollView>
 
       {/* Grid */}
-      {loading ? null : (
-        <FlatList
+      <FlatList
           data={displayItems}
           keyExtractor={(item, i) => item?.id ?? `empty-${i}`}
           numColumns={2}
@@ -108,7 +105,6 @@ export function SavedPage() {
             )
           }
         />
-      )}
 
       {/* Floating filter button */}
       <Pressable style={styles.filterButton}>

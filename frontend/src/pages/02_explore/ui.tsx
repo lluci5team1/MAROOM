@@ -19,6 +19,7 @@ import { DEFAULT_FILTER, FilterState } from "../../features/filter/model/type";
 import { searchFurnitureItems } from "../../entities/product/api";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { Product } from "../../entities/product/type";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -37,7 +38,6 @@ const COL3_W = Math.floor((USABLE - GAP * 2) / 3);
 const ROW3_H = 130;
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
-const USE_MOCK = true;
 const EXPLORE_MOCK: Product[] = [
   ...MOCK_PRODUCTS,
   ...MOCK_PRODUCTS.map((p) => ({ ...p, id: p.id + "-b" })),
@@ -141,20 +141,27 @@ export function ExplorePage() {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterState>(DEFAULT_FILTER);
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
-    if (USE_MOCK) {
+    setLoading(true);
+    try {
+      const data = await searchFurnitureItems({
+        q: searchText,
+        brand: filter.brand,
+        category: filter.category,
+        roomType: filter.category,
+        color: filter.color,
+        minPrice: filter.priceRange.min,
+        maxPrice: filter.priceRange.max,
+        sortBy: filter.sortBy,
+      });
+      setProducts(data.length > 0 ? data : applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
+    } catch {
       setProducts(applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
-      return;
+    } finally {
+      setLoading(false);
     }
-    // try {
-    //   const data = await searchFurnitureItems({ q: searchText, brand: filter.brand,
-    //     category: filter.category, roomType: filter.category, color: filter.color,
-    //     minPrice: filter.priceRange.min, maxPrice: filter.priceRange.max, sortBy: filter.sortBy });
-    //   setProducts(applyClientSideFilters(data, searchText, filter));
-    // } catch {
-    //   setProducts(applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
-    // }
   }, []);
 
   useEffect(() => { loadProducts("", DEFAULT_FILTER); }, []);
@@ -167,6 +174,8 @@ export function ExplorePage() {
     const blockTypes = blocks.map(() => Math.floor(Math.random() * 3));
     return { blocks, blockTypes };
   }, [products]);
+
+  if (loading) return <LoadingScreen />;
 
   return (
     <View style={styles.screen}>
