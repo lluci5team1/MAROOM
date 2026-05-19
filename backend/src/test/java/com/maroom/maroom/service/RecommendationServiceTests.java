@@ -1,15 +1,5 @@
 package com.maroom.maroom.service;
 
-import com.maroom.maroom.domain.FurnitureItem;
-import com.maroom.maroom.repository.FurnitureItemRepository;
-import com.maroom.maroom.repository.SwipeEventRepository;
-import org.junit.jupiter.api.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-
-import java.util.List;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -19,16 +9,33 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maroom.maroom.domain.FurnitureItem;
+import com.maroom.maroom.repository.FurnitureItemRepository;
+import com.maroom.maroom.repository.PreferenceRepository;
+import com.maroom.maroom.repository.SwipeEventRepository;
+
 class RecommendationServiceTests {
 
     private final JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
     private final FurnitureItemRepository furnitureItemRepository = mock(FurnitureItemRepository.class);
     private final SwipeEventRepository swipeEventRepository = mock(SwipeEventRepository.class);
+    private final PreferenceRepository preferenceRepository = mock(PreferenceRepository.class);
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final RecommendationService recommendationService = new RecommendationService(
             jdbcTemplate,
             furnitureItemRepository,
             swipeEventRepository,
+            preferenceRepository,
+            objectMapper,
             "voyage-multimodal-3.5",
             1024
     );
