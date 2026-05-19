@@ -27,3 +27,14 @@ export async function signup(body: SignupRequest): Promise<AuthResponse> {
   const res = await apiClient.post("/auth/signup", body);
   return res.data;
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export async function fetchUser(userId: string): Promise<UserProfile> {
+  const res = await apiClient.get(`/users/${userId}`);
+  return res.data;
+}

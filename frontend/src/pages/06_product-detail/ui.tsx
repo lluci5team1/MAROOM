@@ -22,6 +22,7 @@ import { Product } from "../../entities/product/type";
 import { MOCK_PRODUCTS, MOCK_PRODUCT_DETAILS } from "../../entities/product/mockData";
 import { getUserId } from "../../shared/api/token";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
+import { invalidateSavedCache } from "../04_saved/ui";
 
 const COLOR_MAP: Record<string, string> = {
   black: "#222222",
@@ -57,11 +58,14 @@ function getMockBaseId(id: string): string {
 
 export function ProductDetailPage() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, data, initialSaved } = useLocalSearchParams<{ id: string; data?: string; initialSaved?: string }>();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
+  const [product, setProduct] = useState<Product | null>(() => {
+    if (data) { try { return JSON.parse(data); } catch {} }
+    return null;
+  });
+  const [loading, setLoading] = useState(!data);
+  const [isSaved, setIsSaved] = useState(initialSaved === "true");
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -70,8 +74,24 @@ export function ProductDetailPage() {
 
     async function load() {
       if (!id) { setLoading(false); return; }
-      setLoading(true);
 
+      // If product data was passed, skip the item fetch — just load saved status
+      if (data) {
+        try {
+          const currentUserId = await getUserId();
+          if (!mounted) return;
+          setUserId(currentUserId);
+          if (currentUserId) {
+            const savedItems = await fetchSavedProducts(currentUserId);
+            if (!mounted) return;
+            setIsSaved(savedItems.some((item) => item.id === String(id)));
+          }
+        } catch {}
+        return;
+      }
+
+      // No pre-passed data — fetch everything
+      setLoading(true);
       const mockProduct = getMockProduct(String(id));
       if (mockProduct) {
         if (mounted) { setProduct(mockProduct); setLoading(false); }
@@ -114,6 +134,7 @@ export function ProductDetailPage() {
       if (isSaved) {
         await unsaveProductForUser(userId, product.id);
         setIsSaved(false);
+        invalidateSavedCache();
       } else {
         await saveProductForUser(userId, product.id);
         setIsSaved(true);

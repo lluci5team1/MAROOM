@@ -7,6 +7,11 @@ export async function fetchFurnitureItems(): Promise<Product[]> {
   return res.data;
 }
 
+export async function fetchFeed(userId: string, size = 20): Promise<Product[]> {
+  const res = await apiClient.get(`/swipe/feed/${userId}?size=${size}`);
+  return res.data;
+}
+
 type FurnitureSearchParams = {
   q?: string;
   brand?: string;

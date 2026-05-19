@@ -7,8 +7,8 @@ import {
   Image,
   Text,
   ScrollView,
+  RefreshControl,
   Dimensions,
-  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -37,6 +37,9 @@ const BIG_H = BIG_W;
 const COL3_W = Math.floor((USABLE - GAP * 2) / 3);
 const ROW3_H = 130;
 
+// ─── Module-level cache (survives tab switches) ───────────────────────────────
+let _cachedProducts: Product[] = [];
+
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const EXPLORE_MOCK: Product[] = [
   ...MOCK_PRODUCTS,
@@ -64,41 +67,16 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
 
 // ─── Block renderers ──────────────────────────────────────────────────────────
 function GridImage({ item, width, height, router }: { item: Product; width: number; height: number; router: any }) {
-  const [loading, setLoading] = useState(false);
-
-  function handlePress() {
-    setLoading(true);
-    setTimeout(() => {
-      router.push({ pathname: "/(main)/[id]", params: { id: item.id } });
-      setLoading(false);
-    }, 450);
-  }
-
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable onPress={() => router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item) } })}>
       <Image
         source={{ uri: item.imageUrl }}
         style={{ width, height, borderRadius: 14, backgroundColor: "#F1F5F9" }}
         resizeMode="cover"
       />
-      {loading && (
-        <View style={gridStyles.loadingOverlay}>
-          <ActivityIndicator color="#018ABD" size="small" />
-        </View>
-      )}
     </Pressable>
   );
 }
-
-const gridStyles = StyleSheet.create({
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
 
 function BlockFeaturedLeft({ items, router }: { items: Product[]; router: any }) {
   return (
@@ -140,11 +118,11 @@ export function ExplorePage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterState>(DEFAULT_FILTER);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(_cachedProducts);
+  const [loading, setLoading] = useState(_cachedProducts.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
-    setLoading(true);
     try {
       const data = await searchFurnitureItems({
         q: searchText,
@@ -156,15 +134,30 @@ export function ExplorePage() {
         maxPrice: filter.priceRange.max,
         sortBy: filter.sortBy,
       });
-      setProducts(data.length > 0 ? data : applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
+      const result = data.length > 0 ? data : applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+      setProducts(result);
+      if (!searchText && !filter.brand && filter.color.length === 0 && filter.style.length === 0) {
+        _cachedProducts = result;
+      }
     } catch {
-      setProducts(applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
+      const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+      setProducts(fallback);
+      if (!searchText) _cachedProducts = fallback;
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => { loadProducts("", DEFAULT_FILTER); }, []);
+  useEffect(() => {
+    if (_cachedProducts.length === 0) loadProducts("", DEFAULT_FILTER);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    _cachedProducts = [];
+    setRefreshing(true);
+    loadProducts("", DEFAULT_FILTER);
+  }, [loadProducts]);
 
   const { blocks, blockTypes } = useMemo(() => {
     const blocks: Product[][] = [];
@@ -175,7 +168,7 @@ export function ExplorePage() {
     return { blocks, blockTypes };
   }, [products]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading && products.length === 0) return <LoadingScreen />;
 
   return (
     <View style={styles.screen}>
@@ -200,7 +193,11 @@ export function ExplorePage() {
           <Text style={styles.emptySubtitle}>We can't find any item matching{"\n"}your search</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.grid}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        >
           {blocks.map((block, i) => {
             const type = blockTypes[i];
             if (type === 0) return <BlockFeaturedLeft key={i} items={block} router={router} />;

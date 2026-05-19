@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
-import { fetchFurnitureItems } from "../../entities/product/api";
+import { fetchFeed, fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { getUserId } from "../../shared/api/token";
@@ -16,9 +16,10 @@ export function HomePage() {
   useEffect(() => {
     async function load() {
       try {
-        const [data, id] = await Promise.all([fetchFurnitureItems(), getUserId()]);
-        setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
+        const id = await getUserId();
         setUserId(id);
+        const data = id ? await fetchFeed(id, 5) : await fetchFurnitureItems();
+        setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
       } catch (error) {
         console.error("Failed to fetch furniture:", error);
         setProducts(MOCK_PRODUCTS);
@@ -29,6 +30,15 @@ export function HomePage() {
 
     load();
   }, []);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!userId) return [];
+    try {
+      return await fetchFeed(userId, 5);
+    } catch {
+      return [];
+    }
+  }, [userId]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -45,7 +55,7 @@ export function HomePage() {
 
       <View style={styles.deckContainer}>
         <View style={styles.deckFrame}>
-          <SwipeCardDeck products={products} userId={userId} />
+          <SwipeCardDeck products={products} userId={userId} onLoadMore={handleLoadMore} />
         </View>
       </View>
     </View>
