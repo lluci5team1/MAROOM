@@ -16,9 +16,18 @@ public class FurnitureImportController {
     }
 
     @PostMapping("/large")
-    public ResponseEntity<String> importLargeDataset() {
-        int savedCount = furnitureImportService.importLargeDataset();
+    public ResponseEntity<FurnitureImportService.ImportResult> importLargeDataset(
+            @RequestParam(defaultValue = "50") int queryLimit,
+            @RequestParam(defaultValue = "false") boolean embed
+    ) {
+        return ResponseEntity.ok(furnitureImportService.importLargeDataset(queryLimit, embed));
+    }
 
-        return ResponseEntity.ok("Imported " + savedCount + " furniture items.");
+    @PostMapping("/serpapi")
+    public ResponseEntity<FurnitureImportService.ImportResult> importFromSerpApi(
+            @RequestParam(defaultValue = "50") int queryLimit,
+            @RequestParam(defaultValue = "false") boolean embed
+    ) {
+        return ResponseEntity.ok(furnitureImportService.importLargeDataset(queryLimit, embed));
     }
 }
