@@ -1,23 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  Pressable,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { Product } from "../../entities/product/type";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { fetchSavedProducts } from "../../entities/product/api";
 import { getUserId } from "../../shared/api/token";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 import CategoryButton from "../../shared/ui/saved/CategoryButton";
 import { SavedProductCard, CARD_W } from "../../shared/ui/saved/SavedProductCard";
-
-const USE_MOCK = true;
 
 const MOCK_SAVED: Product[] = [
   ...MOCK_PRODUCTS,
@@ -27,34 +25,49 @@ const MOCK_SAVED: Product[] = [
 
 const CATEGORIES = ["All Items", "Living Room", "Bedroom", "Dining Room", "Office", "Outdoor"];
 
+let _cachedSaved: Product[] = [];
+
+export function invalidateSavedCache() {
+  _cachedSaved = [];
+}
+
 export function SavedPage() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(_cachedSaved);
+  const [loading, setLoading] = useState(_cachedSaved.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
   const [curCategory, setCurCategory] = useState("All Items");
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      if (USE_MOCK) {
+  const load = useCallback(async () => {
+    try {
+      const userId = await getUserId();
+      if (userId) {
+        const data = await fetchSavedProducts(userId);
+        const result = data.length > 0 ? data : MOCK_SAVED;
+        setProducts(result);
+        _cachedSaved = result;
+      } else {
         setProducts(MOCK_SAVED);
-        setLoading(false);
-        return;
+        _cachedSaved = MOCK_SAVED;
       }
-      try {
-        const userId = await getUserId();
-        if (userId) {
-          const data = await fetchSavedProducts(userId);
-          setProducts(data);
-        }
-      } catch (e) {
-        setProducts(MOCK_SAVED);
-      } finally {
-        setLoading(false);
-      }
+    } catch {
+      setProducts(MOCK_SAVED);
+      _cachedSaved = MOCK_SAVED;
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    if (_cachedSaved.length === 0) load();
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    _cachedSaved = [];
+    setRefreshing(true);
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     if (curCategory === "All Items") return products;
@@ -63,6 +76,8 @@ export function SavedPage() {
 
   // ensure even columns
   const displayItems = filtered.length % 2 !== 0 ? [...filtered, null] : filtered;
+
+  if (loading && products.length === 0) return <LoadingScreen />;
 
   return (
     <View style={styles.screen}>
@@ -87,20 +102,20 @@ export function SavedPage() {
       </ScrollView>
 
       {/* Grid */}
-      {loading ? null : (
-        <FlatList
+      <FlatList
           data={displayItems}
           keyExtractor={(item, i) => item?.id ?? `empty-${i}`}
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           renderItem={({ item }) =>
             item ? (
               <SavedProductCard
                 product={item}
                 onPress={() =>
-                  router.push({ pathname: "/(main)/[id]", params: { id: item.id } })
+                  router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item), initialSaved: "true" } })
                 }
               />
             ) : (
@@ -108,12 +123,7 @@ export function SavedPage() {
             )
           }
         />
-      )}
 
-      {/* Floating filter button */}
-      <Pressable style={styles.filterButton}>
-        <Ionicons name="options-outline" size={22} color="#fff" />
-      </Pressable>
     </View>
   );
 }
@@ -149,21 +159,5 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: 14,
-  },
-  filterButton: {
-    position: "absolute",
-    right: 20,
-    bottom: 20,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#018ABD",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#018ABD",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
   },
 });

@@ -14,7 +14,7 @@ import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { icons } from "../../shared/assets/icons";
 import { useRouter } from "expo-router";
 import { login } from "../../entities/user/api";
-import { saveToken, saveUserId } from "../../shared/api/token";
+import { saveToken, saveUserId, saveOnboardingFlag } from "../../shared/api/token";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -24,31 +24,32 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    // TEMP: bypass login for UI testing
-    router.replace("/home");
-    return;
-
-    // if (!agree) {
-    //   Alert.alert("Please agree to the Terms & Conditions");
-    //   return;
-    // }
-    // if (!email || !password) {
-    //   Alert.alert("Please enter your email and password");
-    //   return;
-    // }
-    // try {
-    //   setLoading(true);
-    //   const res = await login({ email, password });
-    //   await saveToken(res.token);
-    //   await saveUserId(res.userId);
-    //   router.replace("/home");
-    // } catch (err: any) {
-    //   const message =
-    //     err?.response?.data?.message ?? "Login failed. Please try again.";
-    //   Alert.alert("Login Error", message);
-    // } finally {
-    //   setLoading(false);
-    // }
+    if (!agree) {
+      Alert.alert("Please agree to the Terms & Conditions");
+      return;
+    }
+    if (!email || !password) {
+      Alert.alert("Please enter your email and password");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await login({ email, password });
+      await saveToken(res.token);
+      await saveUserId(res.userId);
+      await saveOnboardingFlag(res.hasCompletedOnboarding);
+      if (res.hasCompletedOnboarding) {
+        router.replace("/home");
+      } else {
+        router.replace("/onboarding");
+      }
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ?? "Login failed. Please try again.";
+      Alert.alert("Login Error", message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

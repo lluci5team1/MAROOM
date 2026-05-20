@@ -7,8 +7,8 @@ import {
   Image,
   Text,
   ScrollView,
+  RefreshControl,
   Dimensions,
-  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -19,6 +19,7 @@ import { DEFAULT_FILTER, FilterState } from "../../features/filter/model/type";
 import { searchFurnitureItems } from "../../entities/product/api";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { Product } from "../../entities/product/type";
+import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -36,8 +37,10 @@ const BIG_H = BIG_W;
 const COL3_W = Math.floor((USABLE - GAP * 2) / 3);
 const ROW3_H = 130;
 
+// ─── Module-level cache (survives tab switches) ───────────────────────────────
+let _cachedProducts: Product[] = [];
+
 // ─── Mock data ────────────────────────────────────────────────────────────────
-const USE_MOCK = true;
 const EXPLORE_MOCK: Product[] = [
   ...MOCK_PRODUCTS,
   ...MOCK_PRODUCTS.map((p) => ({ ...p, id: p.id + "-b" })),
@@ -64,41 +67,16 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
 
 // ─── Block renderers ──────────────────────────────────────────────────────────
 function GridImage({ item, width, height, router }: { item: Product; width: number; height: number; router: any }) {
-  const [loading, setLoading] = useState(false);
-
-  function handlePress() {
-    setLoading(true);
-    setTimeout(() => {
-      router.push({ pathname: "/(main)/[id]", params: { id: item.id } });
-      setLoading(false);
-    }, 450);
-  }
-
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable onPress={() => router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item) } })}>
       <Image
         source={{ uri: item.imageUrl }}
         style={{ width, height, borderRadius: 14, backgroundColor: "#F1F5F9" }}
         resizeMode="cover"
       />
-      {loading && (
-        <View style={gridStyles.loadingOverlay}>
-          <ActivityIndicator color="#018ABD" size="small" />
-        </View>
-      )}
     </Pressable>
   );
 }
-
-const gridStyles = StyleSheet.create({
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
 
 function BlockFeaturedLeft({ items, router }: { items: Product[]; router: any }) {
   return (
@@ -140,24 +118,46 @@ export function ExplorePage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterState>(DEFAULT_FILTER);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(_cachedProducts);
+  const [loading, setLoading] = useState(_cachedProducts.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
-    if (USE_MOCK) {
-      setProducts(applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
-      return;
+    try {
+      const data = await searchFurnitureItems({
+        q: searchText,
+        brand: filter.brand,
+        category: filter.category,
+        roomType: filter.category,
+        color: filter.color,
+        minPrice: filter.priceRange.min,
+        maxPrice: filter.priceRange.max,
+        sortBy: filter.sortBy,
+      });
+      const result = data.length > 0 ? data : applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+      setProducts(result);
+      if (!searchText && !filter.brand && filter.color.length === 0 && filter.style.length === 0) {
+        _cachedProducts = result;
+      }
+    } catch {
+      const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+      setProducts(fallback);
+      if (!searchText) _cachedProducts = fallback;
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    // try {
-    //   const data = await searchFurnitureItems({ q: searchText, brand: filter.brand,
-    //     category: filter.category, roomType: filter.category, color: filter.color,
-    //     minPrice: filter.priceRange.min, maxPrice: filter.priceRange.max, sortBy: filter.sortBy });
-    //   setProducts(applyClientSideFilters(data, searchText, filter));
-    // } catch {
-    //   setProducts(applyClientSideFilters(EXPLORE_MOCK, searchText, filter));
-    // }
   }, []);
 
-  useEffect(() => { loadProducts("", DEFAULT_FILTER); }, []);
+  useEffect(() => {
+    if (_cachedProducts.length === 0) loadProducts("", DEFAULT_FILTER);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    _cachedProducts = [];
+    setRefreshing(true);
+    loadProducts("", DEFAULT_FILTER);
+  }, [loadProducts]);
 
   const { blocks, blockTypes } = useMemo(() => {
     const blocks: Product[][] = [];
@@ -167,6 +167,8 @@ export function ExplorePage() {
     const blockTypes = blocks.map(() => Math.floor(Math.random() * 3));
     return { blocks, blockTypes };
   }, [products]);
+
+  if (loading && products.length === 0) return <LoadingScreen />;
 
   return (
     <View style={styles.screen}>
@@ -191,7 +193,11 @@ export function ExplorePage() {
           <Text style={styles.emptySubtitle}>We can't find any item matching{"\n"}your search</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.grid}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        >
           {blocks.map((block, i) => {
             const type = blockTypes[i];
             if (type === 0) return <BlockFeaturedLeft key={i} items={block} router={router} />;

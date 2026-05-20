@@ -14,7 +14,7 @@ import {
 const SHEET_HEIGHT = Dimensions.get("window").height * (3 / 4);
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PriceSlider } from "./PriceSlider";
 import {
   FilterState,
@@ -127,14 +127,16 @@ export function FilterModal({ visible, onClose, onApply }: Props) {
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent
       statusBarTranslucent
       onRequestClose={handleBack}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Pressable style={styles.overlay} onPress={handleBack} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim, backgroundColor: "rgba(0,0,0,0.45)" }]}>
+          <Pressable style={{ flex: 1 }} onPress={handleBack} />
+        </Animated.View>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }], paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.handle} />
           {/* Header */}
           <View style={styles.header}>
@@ -327,7 +329,7 @@ export function FilterModal({ visible, onClose, onApply }: Props) {
                 : "Show Products"}
             </Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -396,11 +398,11 @@ function ItemCard({
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
   sheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: SHEET_HEIGHT,
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,

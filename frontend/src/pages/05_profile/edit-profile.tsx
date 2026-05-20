@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,27 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { getUserId } from "../../shared/api/token";
+import { fetchUser } from "../../entities/user/api";
 
 export function EditProfilePage() {
-  const [fullName, setFullName] = useState("Alexander Maroom");
-  const [email, setEmail] = useState("alexander.m@maroom.com");
-  const [phone, setPhone] = useState("+1(555)000-1234");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const userId = await getUserId();
+        if (userId) {
+          const user = await fetchUser(userId);
+          setFullName(user.displayName);
+          setEmail(user.email);
+        }
+      } catch {}
+    }
+    load();
+  }, []);
 
   const handleSave = () => {
     router.back();

@@ -1,31 +1,30 @@
 package com.maroom.maroom.controller;
 
-import com.maroom.maroom.dto.PreferenceOptionsResponse;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
+@RequestMapping("/preferences/options")
 @CrossOrigin
 public class PreferenceOptionsController {
 
-    @GetMapping("/preferences/options")
-    public PreferenceOptionsResponse getPreferenceOptions() {
-        return new PreferenceOptionsResponse(
-                List.of(
+    @GetMapping
+    public Map<String, Object> getPreferenceOptions() {
+        return Map.of(
+                "homeTypes", List.of(
                         "SINGLE_FAMILY_HOME",
                         "1_BEDROOM",
                         "2_BEDROOM",
                         "DORM_STUDIO"
                 ),
-                List.of(
+                "roomSizes", List.of(
                         "SMALL",
                         "MEDIUM",
                         "LARGE"
                 ),
-                List.of(
+                "styles", List.of(
                         "MINIMALIST",
                         "MODERN",
                         "SCANDINAVIAN",
@@ -34,7 +33,7 @@ public class PreferenceOptionsController {
                         "BOHO",
                         "INDUSTRIAL"
                 ),
-                List.of(
+                "colorPalettes", List.of(
                         "WARM_NEUTRAL",
                         "COOL_NEUTRAL",
                         "EARTHY_TONES",
@@ -42,7 +41,7 @@ public class PreferenceOptionsController {
                         "VIBRANT",
                         "PASTEL"
                 ),
-                List.of(
+                "budgets", List.of(
                         "UNDER_100",
                         "100_300",
                         "300_500",

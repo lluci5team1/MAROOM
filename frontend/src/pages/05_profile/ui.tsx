@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,28 @@ import {
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { removeToken, removeUserId } from "../../shared/api/token";
+import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
+import { fetchUser } from "../../entities/user/api";
 
 export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const userId = await getUserId();
+        if (userId) {
+          const user = await fetchUser(userId);
+          setDisplayName(user.displayName);
+          setEmail(user.email);
+        }
+      } catch {}
+    }
+    load();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -47,8 +64,8 @@ export function ProfilePage() {
         </View>
 
         {/* User Info */}
-        <Text style={styles.userName}>Julian Walters</Text>
-        <Text style={styles.userEmail}>julian.walters@maroom.com</Text>
+        <Text style={styles.userName}>{displayName}</Text>
+        <Text style={styles.userEmail}>{email}</Text>
 
         {/* Menu Cards */}
         <View style={styles.menuSection}>

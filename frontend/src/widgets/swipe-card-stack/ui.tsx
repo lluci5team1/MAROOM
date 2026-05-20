@@ -1,6 +1,6 @@
 // widgets/swipe-card-deck/ui/SwipeCardDeck.tsx
 import { View, StyleSheet } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSharedValue, SharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
 import { ProductCard } from "../../shared/ui/ProductCard";
@@ -13,6 +13,7 @@ import { swipeProduct } from "../../entities/product/api";
 type Props = {
   products: Product[];
   userId: string | null;
+  onLoadMore?: () => Promise<Product[]>;
 };
 
 type SwipeActions = {
@@ -21,27 +22,45 @@ type SwipeActions = {
   translateX: SharedValue<number>;
 };
 
-export function SwipeCardDeck({ products, userId }: Props) {
-  const [data, setData] = useState([...products, ...products]);
+export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
+  const [data, setData] = useState([...products]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const animatedValues = useSharedValue(0);
   const [swipeActions, setSwipeActions] = useState<SwipeActions | null>(null);
   const [activePress, setActivePress] = useState<"like" | "dislike" | null>(null);
+  const loadingMore = useRef(false);
+  const initialized = useRef(false);
   const ACTIVE_PRESS_MS = 420;
   const SWIPE_TRIGGER_DELAY_MS = 130;
 
   const MAX = 4;
+  const LOAD_MORE_THRESHOLD = 5;
 
   useEffect(() => {
-    setData([...products, ...products]);
-    setCurrentIndex(0);
+    if (!initialized.current && products.length > 0) {
+      setData([...products]);
+      setCurrentIndex(0);
+      initialized.current = true;
+    }
   }, [products]);
 
   const handleSwiped = (direction: "LEFT" | "RIGHT", item: Product) => {
-    setCurrentIndex((i) => i + 1);
-    setData((prev) => [...prev, prev[currentIndex]]);
+    const nextIndex = currentIndex + 1;
+    setCurrentIndex(nextIndex);
+
     if (userId) {
       swipeProduct(userId, item.id, direction).catch(() => {});
+    }
+
+    if (onLoadMore && !loadingMore.current && data.length - nextIndex <= LOAD_MORE_THRESHOLD) {
+      loadingMore.current = true;
+      onLoadMore()
+        .then((more) => {
+          if (more.length > 0) {
+            setData((prev) => [...prev, ...more]);
+          }
+        })
+        .finally(() => { loadingMore.current = false; });
     }
   };
 
