@@ -18,16 +18,18 @@ public class FurnitureImportController {
     @PostMapping("/large")
     public ResponseEntity<FurnitureImportService.ImportResult> importLargeDataset(
             @RequestParam(defaultValue = "50") int queryLimit,
-            @RequestParam(defaultValue = "false") boolean embed
+            @RequestParam(defaultValue = "false") boolean embed,
+            @RequestParam(defaultValue = "true") boolean random
     ) {
-        return ResponseEntity.ok(furnitureImportService.importLargeDataset(queryLimit, embed));
+        return ResponseEntity.ok(furnitureImportService.importLargeDataset(queryLimit, embed, random));
     }
 
     @PostMapping("/serpapi")
     public ResponseEntity<FurnitureImportService.ImportResult> importFromSerpApi(
             @RequestParam(defaultValue = "50") int queryLimit,
-            @RequestParam(defaultValue = "false") boolean embed
+            @RequestParam(defaultValue = "false") boolean embed,
+            @RequestParam(defaultValue = "true") boolean random
     ) {
-        return ResponseEntity.ok(furnitureImportService.importLargeDataset(queryLimit, embed));
+        return ResponseEntity.ok(furnitureImportService.importLargeDataset(queryLimit, embed, random));
     }
 }

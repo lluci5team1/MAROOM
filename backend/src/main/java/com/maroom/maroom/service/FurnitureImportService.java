@@ -1,6 +1,7 @@
 package com.maroom.maroom.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,8 +28,12 @@ public class FurnitureImportService {
         this.furnitureEmbeddingService = furnitureEmbeddingService;
     }
 
-    public ImportResult importLargeDataset(int requestedQueryLimit, boolean embedNewItems) {
+    public ImportResult importLargeDataset(int requestedQueryLimit, boolean embedNewItems, boolean randomizeQueries) {
         List<ImportQuery> queries = buildImportQueries();
+        if (randomizeQueries) {
+            Collections.shuffle(queries);
+        }
+
         int queryLimit = Math.max(1, Math.min(requestedQueryLimit, queries.size()));
         int savedCount = 0;
         int fetchedCount = 0;
@@ -84,7 +89,8 @@ public class FurnitureImportService {
                 invalidCount,
                 failedQueryCount,
                 embeddedCount,
-                embedNewItems
+                embedNewItems,
+                randomizeQueries
         );
     }
 
@@ -175,7 +181,8 @@ public class FurnitureImportService {
             int invalidCount,
             int failedQueryCount,
             int embeddedCount,
-            boolean embedRequested
+            boolean embedRequested,
+            boolean randomized
     ) {}
 
     private record ImportQuery(
