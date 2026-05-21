@@ -60,6 +60,9 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
+    eas: {
+      projectId: "eb25df79-2047-4a65-8813-59469ea1dcef",
+    },
     router: {
       root: "src/app",
     },
