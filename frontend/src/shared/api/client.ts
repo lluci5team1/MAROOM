@@ -2,8 +2,11 @@
 import axios from "axios";
 import { getToken } from "./token";
 
+const RAILWAY_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://maroom-production.up.railway.app";
+const LOCAL_URL = "http://localhost:8080";
+
 export const apiClient = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080",
+  baseURL: RAILWAY_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -32,7 +35,15 @@ apiClient.interceptors.response.use(
     );
     return response;
   },
-  (error) => {
+  async (error) => {
+    const config = error.config as any;
+    // If Railway is unreachable (no response = network error) and we haven't tried local yet
+    if (!error.response && !config._localFallback) {
+      config._localFallback = true;
+      config.baseURL = LOCAL_URL;
+      console.log("[API FALLBACK] Railway unreachable — retrying on localhost:8080");
+      return apiClient(config);
+    }
     console.log(
       "[API ERROR]",
       error?.response?.status,
