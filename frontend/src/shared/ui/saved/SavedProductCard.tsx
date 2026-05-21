@@ -16,11 +16,13 @@ export function SavedProductCard({ product, onPress }: Props) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrapper}>
-        <Image
-          source={{ uri: product.imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {!!product.imageUrl && (
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
         <View style={styles.bookmarkBtn}>
           <Ionicons name="bookmark" size={16} color="#018ABD" />
         </View>

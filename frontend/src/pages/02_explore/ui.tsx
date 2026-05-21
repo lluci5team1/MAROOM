@@ -69,11 +69,13 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
 function GridImage({ item, width, height, router }: { item: Product; width: number; height: number; router: any }) {
   return (
     <Pressable onPress={() => router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item) } })}>
-      <Image
-        source={{ uri: item.imageUrl }}
-        style={{ width, height, borderRadius: 14, backgroundColor: "#F1F5F9" }}
-        resizeMode="cover"
-      />
+      {!!item.imageUrl && (
+        <Image
+          source={{ uri: item.imageUrl }}
+          style={{ width, height, borderRadius: 14, backgroundColor: "#F1F5F9" }}
+          resizeMode="cover"
+        />
+      )}
     </Pressable>
   );
 }
