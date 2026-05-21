@@ -24,6 +24,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Service
 public class FurnitureEmbeddingService {
@@ -131,6 +132,25 @@ public class FurnitureEmbeddingService {
     public BackfillResult backfillMissingEmbeddings(int requestedLimit, int requestedBatchSize) {
         int limit = Math.max(1, Math.min(requestedLimit, 500));
         int batchSize = Math.max(1, Math.min(requestedBatchSize, 50));
+        return backfillCandidates(limit, batchSize, furnitureItemRepository::findAll);
+    }
+
+    public BackfillResult backfillMissingEmbeddingsWindow(
+            int requestedLimit,
+            int requestedBatchSize,
+            int requestedOffset
+    ) {
+        int limit = Math.max(1, Math.min(requestedLimit, 500));
+        int batchSize = Math.max(1, Math.min(requestedBatchSize, 50));
+        int offset = Math.max(0, requestedOffset);
+        return backfillCandidates(limit, batchSize, () -> furnitureItemRepository.findWindowById(offset, limit));
+    }
+
+    private BackfillResult backfillCandidates(
+            int limit,
+            int batchSize,
+            Supplier<Iterable<FurnitureItem>> candidateSupplier
+    ) {
         if (!isConfigured()) {
             return new BackfillResult(false, false, limit, batchSize, 0, 0, 0, 0, 0);
         }
@@ -145,7 +165,7 @@ public class FurnitureEmbeddingService {
         int batches = 0;
         List<FurnitureItem> batch = new ArrayList<>();
 
-        for (FurnitureItem item : furnitureItemRepository.findAll()) {
+        for (FurnitureItem item : candidateSupplier.get()) {
             if (embedded + failed >= limit) {
                 break;
             }

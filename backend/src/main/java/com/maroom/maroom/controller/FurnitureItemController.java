@@ -36,8 +36,14 @@ public class FurnitureItemController {
     @PostMapping("/embeddings/backfill")
     public ResponseEntity<FurnitureEmbeddingService.BackfillResult> backfillEmbeddings(
             @RequestParam(defaultValue = "25") int limit,
-            @RequestParam(defaultValue = "25") int batchSize
+            @RequestParam(defaultValue = "25") int batchSize,
+            @RequestParam(required = false) Integer offset
     ) {
+        if (offset != null) {
+            return ResponseEntity.ok(
+                    furnitureEmbeddingService.backfillMissingEmbeddingsWindow(limit, batchSize, offset)
+            );
+        }
         return ResponseEntity.ok(furnitureEmbeddingService.backfillMissingEmbeddings(limit, batchSize));
     }
 
