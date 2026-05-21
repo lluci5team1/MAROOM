@@ -14,7 +14,7 @@ const config: ExpoConfig = {
 
   userInterfaceStyle: "automatic",
 
-  newArchEnabled: true,
+  newArchEnabled: false,
 
   platforms: ["ios", "android", "web"],
 
