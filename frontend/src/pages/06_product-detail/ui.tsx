@@ -353,6 +353,7 @@ const styles = StyleSheet.create({
   // Back card — same margin/radius as imageWrapper
   backCard: {
     margin: 16,
+    height: 340,
     borderRadius: 24,
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -361,15 +362,15 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingTop: 14,
+    paddingBottom: 24,
     justifyContent: "space-between",
   },
   specRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   specDivider: {
     height: 1,
@@ -390,8 +391,8 @@ const styles = StyleSheet.create({
   },
 
   buyButton: {
-    marginTop: 32,
-    height: 58,
+    marginTop: 20,
+    height: 54,
     borderRadius: 30,
     backgroundColor: "#018ABD",
     flexDirection: "row",

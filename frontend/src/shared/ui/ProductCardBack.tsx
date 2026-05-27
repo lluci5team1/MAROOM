@@ -1,151 +1,107 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Product } from "../../entities/product/type";
 
 export function ProductCardBack({ product }: { product: Product }) {
-  const colors = product.color
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .slice(0, 2);
+  async function handleBuyNow() {
+    if (!product.productUrl) return;
+    const canOpen = await Linking.canOpenURL(product.productUrl);
+    if (canOpen) await Linking.openURL(product.productUrl);
+  }
 
-  const firstColor = colors[0] ?? "Beige";
-  const secondColor = colors[1] ?? "Charcoal";
+  const specs = [
+    { label: "Dimensions", value: "N/A" },
+    { label: "Weight", value: "N/A" },
+    { label: "Material", value: "N/A" },
+  ];
 
   return (
     <View style={styles.shadowWrapper}>
       <View style={styles.card}>
-        <View style={styles.header}>
-          <Text style={styles.title} numberOfLines={2}>
-            {product.brand.toUpperCase()}
-          </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {product.title}
-          </Text>
+        {/* Color row */}
+        <View style={styles.specRow}>
+          <Text style={styles.specKey}>Color</Text>
+          <Text style={styles.specValue}>{product.color.toUpperCase()}</Text>
         </View>
 
-        <View style={styles.content}>
-          <Text style={styles.sectionLabel}>Color</Text>
-          <View style={styles.colorRow}>
-            <View style={[styles.colorDot, { backgroundColor: mapColor(firstColor) }]} />
-            <View style={[styles.colorDot, { backgroundColor: mapColor(secondColor) }]} />
+        {specs.map((spec) => (
+          <View key={spec.label}>
+            <View style={styles.divider} />
+            <View style={styles.specRow}>
+              <Text style={styles.specKey}>{spec.label}</Text>
+              <Text style={styles.specValue}>{spec.value.toUpperCase()}</Text>
+            </View>
           </View>
+        ))}
 
-          <Text style={styles.sectionLabel}>Dimensions</Text>
-          <Text style={styles.sectionValue}>15.8"W x 12.7"D x 5.7"H</Text>
-
-          <Text style={styles.sectionLabel}>Weight</Text>
-          <Text style={styles.sectionValue}>62.2 lbs</Text>
-
-          <Text style={styles.sectionLabel}>Material</Text>
-          <Text style={styles.sectionValue}>Melamine, Wood</Text>
-
-          <Pressable style={styles.ctaButton}>
-            <Text style={styles.ctaText}>BUY NOW</Text>
-          </Pressable>
-        </View>
+        <Pressable style={styles.buyButton} onPress={handleBuyNow}>
+          <Text style={styles.buyButtonText}>Buy Now</Text>
+          <Ionicons name="open-outline" size={18} color="#fff" style={{ marginLeft: 8 }} />
+        </Pressable>
       </View>
     </View>
   );
 }
 
-function mapColor(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes("black") || lower.includes("charcoal")) return "#3A3C3B";
-  if (lower.includes("white") || lower.includes("cream")) return "#EFE8E0";
-  if (lower.includes("beige") || lower.includes("ivory") || lower.includes("tan")) return "#EBD4BD";
-  if (lower.includes("gray") || lower.includes("grey")) return "#929292";
-  if (lower.includes("brown")) return "#8B5E3B";
-  if (lower.includes("blue") || lower.includes("navy")) return "#3E67A8";
-  if (lower.includes("green")) return "#4E7A4C";
-  if (lower.includes("red")) return "#A34A45";
-  return "#D8D8D8";
-}
-
 const styles = StyleSheet.create({
   shadowWrapper: {
     width: 332,
-    height: 536,
+    height: 460,
     borderRadius: 32,
-    shadowColor: "#173B63",
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.16,
-    shadowRadius: 26,
-    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   card: {
     flex: 1,
-    backgroundColor: "#F4F8FB",
+    backgroundColor: "#fff",
     borderRadius: 32,
-    overflow: "hidden",
+    paddingHorizontal: 28,
+    paddingTop: 60,
+    paddingBottom: 28,
   },
-  header: {
-    backgroundColor: "#2C84C6",
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 16,
-  },
-  title: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    lineHeight: 18,
-    fontFamily: "Poppins_600SemiBold",
-  },
-  subtitle: {
-    color: "#FFFFFF",
-    fontSize: 8,
-    lineHeight: 11,
-    fontFamily: "Inter_600SemiBold",
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 10,
-  },
-  sectionLabel: {
-    marginTop: 4,
-    fontSize: 16,
-    color: "#111111",
-    fontFamily: "Poppins_600SemiBold",
-  },
-  sectionValue: {
-    marginTop: 6,
-    marginBottom: 6,
-    fontSize: 13,
-    color: "#1B1B1B",
-    fontFamily: "Inter_400Regular",
-  },
-  colorRow: {
+  specRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 10,
-    marginBottom: 8,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingVertical: 18,
   },
-  colorDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
   },
-  ctaButton: {
-    marginTop: "auto",
-    marginBottom: 24,
-    alignSelf: "center",
-    backgroundColor: "#2C84C6",
-    minWidth: 208,
-    height: 58,
-    borderRadius: 29,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#173B63",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  ctaText: {
-    color: "#FFFFFF",
+  specKey: {
     fontSize: 16,
-    fontFamily: "Poppins_700Bold",
-    lineHeight: 20,
+    color: "#111827",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+  },
+  specValue: {
+    fontSize: 14,
+    color: "#374151",
+    fontFamily: "PlusJakartaSans_400Regular",
+    textAlign: "right",
+    flex: 1,
+    marginLeft: 16,
+  },
+  buyButton: {
+    marginTop: "auto" as any,
+    height: 54,
+    borderRadius: 30,
+    backgroundColor: "#018ABD",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#018ABD",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  buyButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontFamily: "PlusJakartaSans_600SemiBold",
   },
 });

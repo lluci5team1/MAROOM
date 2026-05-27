@@ -224,16 +224,6 @@ function AnalysisAnimation() {
 
   return (
     <View style={anim.phone}>
-      {/* Status bar */}
-      <View style={anim.statusBar}>
-        <Text style={anim.time}>9:41</Text>
-        <View style={anim.statusRight}>
-          <View style={anim.signal} />
-          <View style={anim.wifi} />
-          <View style={anim.battery} />
-        </View>
-      </View>
-
       {/* Circle — all children clipped to circular boundary */}
       <View style={anim.circleShadow}>
         <View style={anim.circle}>
@@ -344,48 +334,6 @@ const anim = StyleSheet.create({
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
-  },
-  statusBar: {
-    position: "absolute",
-    top: 15,
-    left: 18,
-    right: 18,
-    height: 22,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  time: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#111",
-  },
-  statusRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  signal: {
-    width: 12,
-    height: 8,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: "#111",
-    transform: [{ skewX: "-20deg" }],
-  },
-  wifi: {
-    width: 10,
-    height: 10,
-    borderRadius: 10,
-    borderTopWidth: 2,
-    borderColor: "#111",
-  },
-  battery: {
-    width: 18,
-    height: 8,
-    borderWidth: 1.5,
-    borderColor: "#111",
-    borderRadius: 2,
   },
   circleShadow: {
     position: "absolute",
