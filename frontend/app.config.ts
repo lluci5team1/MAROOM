@@ -14,7 +14,7 @@ const config: ExpoConfig = {
 
   userInterfaceStyle: "automatic",
 
-  newArchEnabled: true,
+  newArchEnabled: false,
 
   platforms: ["ios", "android", "web"],
 
@@ -55,11 +55,22 @@ const config: ExpoConfig = {
     ],
   ],
 
+  updates: {
+    url: "https://u.expo.dev/eb25df79-2047-4a65-8813-59469ea1dcef",
+  },
+
+  runtimeVersion: {
+    policy: "appVersion",
+  },
+
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
   },
   extra: {
+    eas: {
+      projectId: "eb25df79-2047-4a65-8813-59469ea1dcef",
+    },
     router: {
       root: "src/app",
     },

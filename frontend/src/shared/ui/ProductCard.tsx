@@ -5,13 +5,13 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <View style={styles.shadowWrapper}>
       <View style={styles.card}>
-        <Image
-          source={{
-            uri: product.imageUrl,
-          }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {!!product.imageUrl && (
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
         <View style={styles.content}>
           <Text style={styles.category} numberOfLines={1} ellipsizeMode="tail">
             {product.category.toUpperCase()}
