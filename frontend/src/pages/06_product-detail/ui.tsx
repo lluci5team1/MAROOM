@@ -75,18 +75,12 @@ export function ProductDetailPage() {
     async function load() {
       if (!id) { setLoading(false); return; }
 
-      // If product data was passed, skip the item fetch — just load saved status
+      // If product data was passed with known saved status, no fetch needed
       if (data) {
-        try {
+        if (initialSaved !== undefined) {
           const currentUserId = await getUserId();
-          if (!mounted) return;
-          setUserId(currentUserId);
-          if (currentUserId) {
-            const savedItems = await fetchSavedProducts(currentUserId);
-            if (!mounted) return;
-            setIsSaved(savedItems.some((item) => item.id === String(id)));
-          }
-        } catch {}
+          if (mounted) setUserId(currentUserId ?? null);
+        }
         return;
       }
 
@@ -221,50 +215,37 @@ export function ProductDetailPage() {
         </Pressable>
       </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Brand + Price */}
+      {/* Brand + Title above the back card */}
+      <View style={styles.titleBlock}>
         <View style={styles.brandPriceRow}>
           <Text style={styles.brand}>{product.brand.toUpperCase()}</Text>
           <Text style={styles.price}>{displayPrice}</Text>
         </View>
-
         <Text style={styles.title}>{product.title}</Text>
         <Text style={styles.category}>{product.category}</Text>
+      </View>
 
-        {/* Color */}
-        <Text style={styles.sectionLabel}>COLOR</Text>
-        <View style={styles.colorRow}>
-          {colorDots.map((hex, i) => (
-            <View
-              key={i}
-              style={[styles.colorDot, { backgroundColor: hex }, i === 0 && styles.colorDotSelected]}
-            />
-          ))}
+      {/* Back card — same size/style as the image card */}
+      <View style={styles.backCard}>
+        {/* Color row */}
+        <View style={styles.specRow}>
+          <Text style={styles.specKey}>Color</Text>
+          <Text style={styles.specValue}>{product.color.toUpperCase()}</Text>
         </View>
-
-        {/* Specifications */}
-        <View style={styles.specsCard}>
-          <Text style={styles.specsTitle}>SPECIFICATIONS</Text>
-          {specs.map((spec, i) => (
-            <View key={spec.label}>
-              {i > 0 && <View style={styles.specDivider} />}
-              <View style={styles.specRow}>
-                <Text style={styles.specKey}>{spec.label}</Text>
-                <Text style={styles.specValue}>{spec.value}</Text>
-              </View>
+        {specs.map((spec) => (
+          <View key={spec.label}>
+            <View style={styles.specDivider} />
+            <View style={styles.specRow}>
+              <Text style={styles.specKey}>{spec.label}</Text>
+              <Text style={styles.specValue}>{spec.value.toUpperCase()}</Text>
             </View>
-          ))}
-        </View>
+          </View>
+        ))}
 
-        {/* The Design */}
-        <Text style={styles.sectionLabel}>THE DESIGN</Text>
-        <Text style={styles.description}>{description}</Text>
-
-        {/* CTA */}
-        <Pressable style={styles.websiteButton} onPress={handleOpenWebsite}>
-          <Text style={styles.websiteButtonText}>View on Website</Text>
-          <Ionicons name="open-outline" size={17} color="#fff" style={{ marginLeft: 7 }} />
+        {/* Buy Now CTA */}
+        <Pressable style={styles.buyButton} onPress={handleOpenWebsite}>
+          <Text style={styles.buyButtonText}>Buy Now</Text>
+          <Ionicons name="open-outline" size={18} color="#fff" style={{ marginLeft: 8 }} />
         </Pressable>
       </View>
     </ScrollView>
@@ -335,8 +316,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  content: { paddingHorizontal: 20 },
-
+  titleBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
   brandPriceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -355,94 +338,74 @@ const styles = StyleSheet.create({
     fontFamily: "PlusJakartaSans_600SemiBold",
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     color: "#111827",
     fontFamily: "PlusJakartaSans_600SemiBold",
-    lineHeight: 34,
-    marginBottom: 4,
+    lineHeight: 32,
+    marginBottom: 2,
   },
   category: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#6B7280",
     fontFamily: "PlusJakartaSans_400Regular",
-    marginBottom: 18,
   },
 
-  sectionLabel: {
-    fontSize: 11,
-    letterSpacing: 1.5,
-    fontFamily: "PlusJakartaSans_600SemiBold",
-    color: "#111827",
-    marginBottom: 10,
-  },
-  colorRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 22,
-  },
-  colorDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-  },
-  colorDotSelected: {
-    borderWidth: 2.5,
-    borderColor: "#018ABD",
-  },
-
-  specsCard: {
-    backgroundColor: "#F1F5FA",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 22,
-    gap: 0,
-  },
-  specsTitle: {
-    fontSize: 11,
-    letterSpacing: 1.5,
-    fontFamily: "PlusJakartaSans_600SemiBold",
-    color: "#374151",
-    marginBottom: 12,
+  // Back card — same margin/radius as imageWrapper
+  backCard: {
+    margin: 16,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
+    justifyContent: "space-between",
   },
   specRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 10,
+    alignItems: "flex-start",
+    paddingVertical: 20,
   },
   specDivider: {
     height: 1,
-    backgroundColor: "#DDE3EC",
+    backgroundColor: "#E5E7EB",
   },
   specKey: {
-    fontSize: 14,
-    color: "#374151",
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  specValue: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#111827",
     fontFamily: "PlusJakartaSans_600SemiBold",
   },
-
-  description: {
+  specValue: {
     fontSize: 14,
-    color: "#4B5563",
+    color: "#374151",
     fontFamily: "PlusJakartaSans_400Regular",
-    lineHeight: 22,
-    marginBottom: 28,
+    textAlign: "right",
+    flex: 1,
+    marginLeft: 16,
   },
 
-  websiteButton: {
-    height: 54,
+  buyButton: {
+    marginTop: 32,
+    height: 58,
     borderRadius: 30,
     backgroundColor: "#018ABD",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#018ABD",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  websiteButtonText: {
+  buyButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: "PlusJakartaSans_600SemiBold",
   },
 

@@ -25,7 +25,7 @@ const MOCK_SAVED: Product[] = [
 
 const CATEGORIES = ["All Items", "Living Room", "Bedroom", "Dining Room", "Office", "Outdoor"];
 
-let _cachedSaved: Product[] = [];
+export let _cachedSaved: Product[] = [];
 
 export function invalidateSavedCache() {
   _cachedSaved = [];

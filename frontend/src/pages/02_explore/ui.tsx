@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Pressable,
   TextInput,
@@ -14,8 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { icons } from "../../shared/assets/icons";
+import { _cachedSaved } from "../04_saved/ui";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
-import { DEFAULT_FILTER, FilterState } from "../../features/filter/model/type";
+import { DEFAULT_FILTER, FilterState, PRICE_MAX, PRICE_MIN } from "../../features/filter/model/type";
 import { searchFurnitureItems } from "../../entities/product/api";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { Product } from "../../entities/product/type";
@@ -40,6 +41,26 @@ const ROW3_H = 130;
 // ─── Module-level cache (survives tab switches) ───────────────────────────────
 let _cachedProducts: Product[] = [];
 
+// ─── Color name → DB keyword expansion ───────────────────────────────────────
+const COLOR_KEYWORDS: Record<string, string[]> = {
+  "Warm Neutral": ["beige", "cream", "sand", "tan", "ivory", "linen"],
+  "Cool Neutral": ["slate", "gray", "grey", "ash", "silver", "mist", "stone"],
+  "Vibrant":      ["blue", "cyan", "red", "yellow", "orange", "purple", "teal"],
+  "Earthy":       ["sage", "olive", "terracotta", "brown", "green", "khaki", "rust"],
+  "B & W":        ["black", "white", "charcoal", "onyx", "ebony"],
+  "Pastel":       ["pink", "lavender", "mint", "blush", "peach", "lilac"],
+};
+
+function expandColorNames(names: string[]): string[] {
+  const out: string[] = [];
+  for (const n of names) {
+    const mapped = COLOR_KEYWORDS[n];
+    if (mapped) out.push(...mapped);
+    else out.push(n.toLowerCase());
+  }
+  return [...new Set(out)];
+}
+
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const EXPLORE_MOCK: Product[] = [
   ...MOCK_PRODUCTS,
@@ -63,6 +84,24 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
   if (filter.sortBy === "price-high-to-low") result = [...result].sort((a, b) => b.price - a.price);
   if (filter.sortBy === "price-low-to-high") result = [...result].sort((a, b) => a.price - b.price);
   return result;
+}
+
+const PAGE_SIZE = 100;
+
+// ─── Three-dot loading indicator ─────────────────────────────────────────────
+function ThreeDotsLoader() {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((p) => (p + 1) % 3), 380);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", paddingVertical: 24, gap: 8 }}>
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: active === i ? "#1A1A1A" : "#D1D5DB" }} />
+      ))}
+    </View>
+  );
 }
 
 // ─── Block renderers ──────────────────────────────────────────────────────────
@@ -123,6 +162,9 @@ export function ExplorePage() {
   const [products, setProducts] = useState<Product[]>(_cachedProducts);
   const [loading, setLoading] = useState(_cachedProducts.length === 0);
   const [refreshing, setRefreshing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
     try {
@@ -130,21 +172,38 @@ export function ExplorePage() {
         q: searchText,
         brand: filter.brand,
         category: filter.category,
-        roomType: filter.category,
-        color: filter.color,
-        minPrice: filter.priceRange.min,
-        maxPrice: filter.priceRange.max,
+        color: expandColorNames(filter.color),
+        minPrice: filter.priceRange.min > PRICE_MIN ? filter.priceRange.min : undefined,
+        maxPrice: filter.priceRange.max < PRICE_MAX ? filter.priceRange.max : undefined,
         sortBy: filter.sortBy,
       });
-      const result = data.length > 0 ? data : applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+
+      const isDefault = !searchText && !filter.brand && filter.category.length === 0
+        && filter.color.length === 0 && filter.style.length === 0
+        && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX;
+
+      // Only fall back to mock when no filter is active and backend returned nothing
+      const base = (!isDefault || data.length > 0)
+        ? data
+        : applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+
+      // Style has no backend support — filter client-side on the results
+      const result = filter.style.length === 0 ? base : base.filter((item) => {
+        const s = (item.style ?? "").toLowerCase();
+        return filter.style.some((f) => s.includes(f.toLowerCase()) || f.toLowerCase().includes(s));
+      });
+
       setProducts(result);
-      if (!searchText && !filter.brand && filter.color.length === 0 && filter.style.length === 0) {
-        _cachedProducts = result;
-      }
+      if (isDefault) _cachedProducts = result;
     } catch {
-      const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
-      setProducts(fallback);
-      if (!searchText) _cachedProducts = fallback;
+      // On error only fall back to mock when no filter is active
+      const isDefault = !searchText && !filter.brand && filter.category.length === 0
+        && filter.color.length === 0 && filter.style.length === 0;
+      if (isDefault) {
+        const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+        setProducts(fallback);
+        _cachedProducts = fallback;
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -157,18 +216,42 @@ export function ExplorePage() {
 
   const handleRefresh = useCallback(() => {
     _cachedProducts = [];
+    setVisibleCount(PAGE_SIZE);
     setRefreshing(true);
     loadProducts("", DEFAULT_FILTER);
   }, [loadProducts]);
 
+  // Reset visible window whenever the product list changes (search / filter)
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [products]);
+
+  const handleScroll = useCallback((e: any) => {
+    if (loadingMoreRef.current) return;
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    const nearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 400;
+    if (!nearBottom) return;
+    setVisibleCount((prev) => {
+      if (prev >= products.length) return prev;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      setTimeout(() => {
+        setVisibleCount((c) => Math.min(c + PAGE_SIZE, products.length));
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+      }, 500);
+      return prev;
+    });
+  }, [products.length]);
+
+  const visibleProducts = products.slice(0, visibleCount);
+
   const { blocks, blockTypes } = useMemo(() => {
     const blocks: Product[][] = [];
-    for (let i = 0; i < products.length; i += 3) {
-      blocks.push(products.slice(i, i + 3));
+    for (let i = 0; i < visibleProducts.length; i += 3) {
+      blocks.push(visibleProducts.slice(i, i + 3));
     }
     const blockTypes = blocks.map(() => Math.floor(Math.random() * 3));
     return { blocks, blockTypes };
-  }, [products]);
+  }, [visibleProducts]);
 
   if (loading && products.length === 0) return <LoadingScreen />;
 
@@ -198,6 +281,8 @@ export function ExplorePage() {
         <ScrollView
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={200}
+          onScroll={handleScroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {blocks.map((block, i) => {
@@ -206,6 +291,7 @@ export function ExplorePage() {
             if (type === 1) return <BlockRow3 key={i} items={block} router={router} />;
             return <BlockFeaturedRight key={i} items={block} router={router} />;
           })}
+          {loadingMore && <ThreeDotsLoader />}
         </ScrollView>
       )}
 
