@@ -30,15 +30,17 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
   const [activePress, setActivePress] = useState<"like" | "dislike" | null>(null);
   const loadingMore = useRef(false);
   const initialized = useRef(false);
+  const seenIds = useRef(new Set<string>());
   const ACTIVE_PRESS_MS = 420;
   const SWIPE_TRIGGER_DELAY_MS = 130;
 
   const MAX = 4;
-  const LOAD_MORE_THRESHOLD = 5;
+  const LOAD_MORE_THRESHOLD = 8;
 
   useEffect(() => {
     if (!initialized.current && products.length > 0) {
       setData([...products]);
+      seenIds.current = new Set(products.map((product) => product.id));
       setCurrentIndex(0);
       initialized.current = true;
     }
@@ -47,17 +49,30 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
   const handleSwiped = (direction: "LEFT" | "RIGHT", item: Product) => {
     const nextIndex = currentIndex + 1;
     setCurrentIndex(nextIndex);
+    seenIds.current.add(item.id);
 
-    if (userId) {
-      swipeProduct(userId, item.id, direction).catch(() => {});
-    }
+    const swipeRequest = userId
+      ? swipeProduct(userId, item.id, direction).catch(() => {})
+      : Promise.resolve();
 
     if (onLoadMore && !loadingMore.current && data.length - nextIndex <= LOAD_MORE_THRESHOLD) {
       loadingMore.current = true;
-      onLoadMore()
+      swipeRequest
+        .then(() => onLoadMore())
         .then((more) => {
           if (more.length > 0) {
-            setData((prev) => [...prev, ...more]);
+            const uniqueMore = more.filter((product) => {
+              if (seenIds.current.has(product.id)) {
+                return false;
+              }
+
+              seenIds.current.add(product.id);
+              return true;
+            });
+
+            if (uniqueMore.length > 0) {
+              setData((prev) => [...prev, ...uniqueMore]);
+            }
           }
         })
         .finally(() => { loadingMore.current = false; });

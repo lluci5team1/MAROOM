@@ -18,7 +18,7 @@ export function HomePage() {
       try {
         const id = await getUserId();
         setUserId(id);
-        const data = id ? await fetchFeed(id, 5) : await fetchFurnitureItems();
+        const data = id ? await fetchFeed(id, 20) : await fetchFurnitureItems();
         setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
       } catch (error) {
         console.error("Failed to fetch furniture:", error);
@@ -34,7 +34,7 @@ export function HomePage() {
   const handleLoadMore = useCallback(async () => {
     if (!userId) return [];
     try {
-      return await fetchFeed(userId, 5);
+      return await fetchFeed(userId, 20);
     } catch {
       return [];
     }

@@ -57,6 +57,67 @@ public class RecommendationService {
     }
 
     public List<FurnitureItem> getFeedForUser(UUID userId, int requestedSize) {
+        return getRandomFeedForUser(userId, requestedSize);
+    }
+
+    public List<FurnitureItem> getRandomFeedForUser(UUID userId, int requestedSize) {
+        int size = normalizeSize(requestedSize);
+        if (size == 0) {
+            return List.of();
+        }
+
+        try {
+            if (userId == null) {
+                return jdbcTemplate.query("""
+                                select
+                                    fi.id,
+                                    fi.title,
+                                    fi.category,
+                                    fi.brand,
+                                    fi.style,
+                                    fi.color,
+                                    fi.price,
+                                    fi.room_type,
+                                    fi.product_url,
+                                    fi.image_url
+                                from furniture_items fi
+                                order by random()
+                                limit ?
+                                """,
+                        furnitureItemRowMapper(),
+                        size);
+            }
+
+            return jdbcTemplate.query("""
+                            select
+                                fi.id,
+                                fi.title,
+                                fi.category,
+                                fi.brand,
+                                fi.style,
+                                fi.color,
+                                fi.price,
+                                fi.room_type,
+                                fi.product_url,
+                                fi.image_url
+                            from furniture_items fi
+                            left join swipe_event se
+                              on se.user_id = ?
+                             and se.furniture_id = fi.id
+                            where se.id is null
+                            order by random()
+                            limit ?
+                            """,
+                    furnitureItemRowMapper(),
+                    userId,
+                    size);
+        } catch (Exception e) {
+            log.warn("Failed to build random feed for {}: {}", userId, e.getMessage());
+            return fillWithFallbackItems(userId, size, List.of(), false);
+        }
+    }
+
+    public List<FurnitureItem> getRecommendationsForUser(UUID userId, int requestedSize) {
         int size = normalizeSize(requestedSize);
         if (size == 0) {
             return List.of();
@@ -67,7 +128,7 @@ public class RecommendationService {
             return rankedItems;
         }
 
-        return fillWithFallbackItems(userId, size, rankedItems);
+        return fillWithFallbackItems(userId, size, rankedItems, true);
     }
 
     private List<FurnitureItem> findRankedByEmbedding(UUID userId, int size) {
@@ -132,7 +193,8 @@ public class RecommendationService {
     private List<FurnitureItem> fillWithFallbackItems(
             UUID userId,
             int size,
-            List<FurnitureItem> rankedItems
+            List<FurnitureItem> rankedItems,
+            boolean usePreferenceSort
     ) {
         Set<UUID> usedIds = new LinkedHashSet<>();
         List<FurnitureItem> feed = new ArrayList<>();
@@ -155,7 +217,7 @@ public class RecommendationService {
                 ? Optional.empty()
                 : preferenceRepository.findById(userId);
 
-        if (preference.isPresent()) {
+        if (usePreferenceSort && preference.isPresent()) {
             Preference userPreference = preference.get();
             List<String> preferredStyles = parseJsonList(userPreference.getStyles());
             List<String> preferredColors = parseJsonList(userPreference.getColorPalette());

@@ -58,7 +58,7 @@ class RecommendationServiceTests {
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
         when(furnitureItemRepository.findAll()).thenReturn(List.of(rankedItem, fallbackItem));
 
-        List<FurnitureItem> feed = recommendationService.getFeedForUser(userId, 2);
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 2);
 
         assertThat(feed).containsExactly(rankedItem, fallbackItem);
     }
@@ -73,7 +73,7 @@ class RecommendationServiceTests {
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of(swipedItem.getId()));
         when(furnitureItemRepository.findAll()).thenReturn(List.of(swipedItem, unswipedItem));
 
-        List<FurnitureItem> feed = recommendationService.getFeedForUser(userId, 10);
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 10);
 
         assertThat(feed).containsExactly(unswipedItem);
     }
@@ -94,7 +94,7 @@ class RecommendationServiceTests {
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
         when(furnitureItemRepository.findAll()).thenReturn(List.of());
 
-        recommendationService.getFeedForUser(userId, 500);
+        recommendationService.getRecommendationsForUser(userId, 500);
 
         verify(jdbcTemplate).query(
                 anyString(),

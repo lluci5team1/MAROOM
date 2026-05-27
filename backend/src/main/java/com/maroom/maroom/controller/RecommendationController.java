@@ -25,7 +25,7 @@ public class RecommendationController {
             @RequestParam(defaultValue = "20") int size
     ) {
         List<FurnitureItem> recommendations =
-                recommendationService.getFeedForUser(userId, size);
+                recommendationService.getRecommendationsForUser(userId, size);
 
         return ResponseEntity.ok(recommendations);
     }
