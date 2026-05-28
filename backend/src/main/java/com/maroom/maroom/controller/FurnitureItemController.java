@@ -1,7 +1,9 @@
 package com.maroom.maroom.controller;
 
 import com.maroom.maroom.domain.FurnitureItem;
+import com.maroom.maroom.domain.Preference;
 import com.maroom.maroom.repository.FurnitureItemRepository;
+import com.maroom.maroom.repository.PreferenceRepository;
 import com.maroom.maroom.service.FurnitureEmbeddingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +17,17 @@ import java.util.stream.Collectors;
 public class FurnitureItemController {
 
     private final FurnitureItemRepository repo;
+    private final PreferenceRepository preferenceRepository;
     private final FurnitureEmbeddingService furnitureEmbeddingService;
 
-    public FurnitureItemController(FurnitureItemRepository repo,
-                                   FurnitureEmbeddingService furnitureEmbeddingService) {
+    public FurnitureItemController(
+            FurnitureItemRepository repo,
+            FurnitureEmbeddingService furnitureEmbeddingService,
+            PreferenceRepository preferenceRepository
+    ) {
         this.repo = repo;
         this.furnitureEmbeddingService = furnitureEmbeddingService;
+        this.preferenceRepository = preferenceRepository;
     }
 
     @PostMapping
@@ -52,6 +59,78 @@ public class FurnitureItemController {
         return ResponseEntity.ok(repo.findAll());
     }
 
+    @GetMapping("/explore/{userId}")
+    public ResponseEntity<List<FurnitureItem>> explore(
+            @PathVariable UUID userId,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) List<String> category,
+            @RequestParam(required = false) List<String> roomType,
+            @RequestParam(required = false) List<String> style,
+            @RequestParam(required = false) List<String> color,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
+            @RequestParam(required = false) String sortBy
+    ) {
+        Optional<Preference> preferenceOptional = preferenceRepository.findById(userId);
+
+        List<String> onboardingStyles = List.of();
+        List<String> onboardingColors = List.of();
+        Integer onboardingMinBudget = null;
+        Integer onboardingMaxBudget = null;
+
+        if (preferenceOptional.isPresent()) {
+            Preference preference = preferenceOptional.get();
+            onboardingStyles = parseJsonList(preference.getStyles());
+            onboardingColors = parseJsonList(preference.getColorPalette());
+            onboardingMinBudget = preference.getMinBudget();
+            onboardingMaxBudget = preference.getMaxBudget();
+        }
+
+        Integer effectiveMinPrice = minPrice != null ? minPrice : onboardingMinBudget;
+        Integer effectiveMaxPrice = maxPrice != null ? maxPrice : onboardingMaxBudget;
+
+        List<String> effectiveOnboardingStyles = onboardingStyles;
+        List<String> effectiveOnboardingColors = onboardingColors;
+
+        List<ScoredFurnitureItem> scoredItems = repo.findAll().stream()
+                .map(item -> new ScoredFurnitureItem(
+                        item,
+                        calculateExploreScore(
+                                item,
+                                q,
+                                brand,
+                                category,
+                                roomType,
+                                style,
+                                color,
+                                effectiveMinPrice,
+                                effectiveMaxPrice,
+                                effectiveOnboardingStyles,
+                                effectiveOnboardingColors
+                        )
+                ))
+                .filter(scored -> scored.score() > 0 || noFiltersApplied(
+                        q,
+                        brand,
+                        category,
+                        roomType,
+                        style,
+                        color,
+                        effectiveMinPrice,
+                        effectiveMaxPrice
+                ))
+                .collect(Collectors.toList());
+
+        sortScoredItems(scoredItems, sortBy);
+
+        return ResponseEntity.ok(
+                scoredItems.stream()
+                        .map(ScoredFurnitureItem::item)
+                        .toList()
+        );
+    }
+
     @GetMapping("/search")
     public ResponseEntity<List<FurnitureItem>> search(
             @RequestParam(required = false) String q,
@@ -64,9 +143,7 @@ public class FurnitureItemController {
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) String sortBy
     ) {
-        List<FurnitureItem> items = repo.findAll();
-
-        List<ScoredFurnitureItem> scoredItems = items.stream()
+        List<ScoredFurnitureItem> scoredItems = repo.findAll().stream()
                 .map(item -> new ScoredFurnitureItem(
                         item,
                         calculateSearchScore(
@@ -86,27 +163,13 @@ public class FurnitureItemController {
                 ))
                 .collect(Collectors.toList());
 
-        if ("price-high-to-low".equals(sortBy)) {
-            scoredItems.sort(
-                    Comparator.comparing(
-                            (ScoredFurnitureItem scored) -> getSafePrice(scored.item())
-                    ).reversed()
-            );
-        } else if ("price-low-to-high".equals(sortBy)) {
-            scoredItems.sort(
-                    Comparator.comparing(scored -> getSafePrice(scored.item()))
-            );
-        } else {
-            scoredItems.sort(
-                    Comparator.comparingInt(ScoredFurnitureItem::score).reversed()
-            );
-        }
+        sortScoredItems(scoredItems, sortBy);
 
-        List<FurnitureItem> result = scoredItems.stream()
-                .map(ScoredFurnitureItem::item)
-                .toList();
-
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(
+                scoredItems.stream()
+                        .map(ScoredFurnitureItem::item)
+                        .toList()
+        );
     }
 
     @GetMapping("/{id}")
@@ -115,6 +178,54 @@ public class FurnitureItemController {
 
         return found.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private int calculateExploreScore(
+            FurnitureItem item,
+            String q,
+            String brand,
+            List<String> categories,
+            List<String> roomTypes,
+            List<String> styles,
+            List<String> colors,
+            Integer minPrice,
+            Integer maxPrice,
+            List<String> onboardingStyles,
+            List<String> onboardingColors
+    ) {
+        int score = calculateSearchScore(
+                item,
+                q,
+                brand,
+                categories,
+                roomTypes,
+                styles,
+                colors,
+                minPrice,
+                maxPrice
+        );
+
+        for (String onboardingStyle : onboardingStyles) {
+            String normalizedStyle = normalize(onboardingStyle);
+
+            if (contains(item.getStyle(), normalizedStyle)) {
+                score += 8;
+            } else if (isRelatedStyle(item.getStyle(), normalizedStyle)) {
+                score += 4;
+            }
+        }
+
+        for (String onboardingColor : onboardingColors) {
+            String normalizedColor = normalize(onboardingColor);
+
+            if (contains(item.getColor(), normalizedColor)) {
+                score += 5;
+            } else if (isRelatedColor(item.getColor(), normalizedColor)) {
+                score += 3;
+            }
+        }
+
+        return score;
     }
 
     private int calculateSearchScore(
@@ -133,25 +244,11 @@ public class FurnitureItemController {
         if (q != null && !q.isBlank()) {
             String query = normalize(q);
 
-            if (contains(item.getTitle(), query)) {
-                score += 10;
-            }
-
-            if (contains(item.getCategory(), query)) {
-                score += 5;
-            }
-
-            if (contains(item.getStyle(), query)) {
-                score += 5;
-            }
-
-            if (contains(item.getColor(), query)) {
-                score += 3;
-            }
-
-            if (contains(item.getBrand(), query)) {
-                score += 3;
-            }
+            if (contains(item.getTitle(), query)) score += 10;
+            if (contains(item.getCategory(), query)) score += 5;
+            if (contains(item.getStyle(), query)) score += 5;
+            if (contains(item.getColor(), query)) score += 3;
+            if (contains(item.getBrand(), query)) score += 3;
         }
 
         if (brand != null && !brand.isBlank()) {
@@ -217,6 +314,24 @@ public class FurnitureItemController {
         return score;
     }
 
+    private void sortScoredItems(List<ScoredFurnitureItem> scoredItems, String sortBy) {
+        if ("price-high-to-low".equals(sortBy)) {
+            scoredItems.sort(
+                    Comparator.comparing(
+                            (ScoredFurnitureItem scored) -> getSafePrice(scored.item())
+                    ).reversed()
+            );
+        } else if ("price-low-to-high".equals(sortBy)) {
+            scoredItems.sort(
+                    Comparator.comparing(scored -> getSafePrice(scored.item()))
+            );
+        } else {
+            scoredItems.sort(
+                    Comparator.comparingInt(ScoredFurnitureItem::score).reversed()
+            );
+        }
+    }
+
     private boolean isWithinPriceRange(FurnitureItem item, Integer minPrice, Integer maxPrice) {
         if (item.getPrice() == null) {
             return true;
@@ -242,7 +357,11 @@ public class FurnitureItemController {
                 "BED", List.of("STORAGE", "BENCH", "TABLE"),
                 "TABLE", List.of("CHAIR", "SOFA", "STORAGE"),
                 "STORAGE", List.of("TABLE", "BED", "CHAIR", "SOFA"),
-                "BENCH", List.of("BED", "CHAIR", "SOFA")
+                "BENCH", List.of("BED", "CHAIR", "SOFA"),
+                "SEATING", List.of("CHAIR", "SOFA", "BENCH"),
+                "SHELVING", List.of("STORAGE", "BOOKCASE", "BOOKSHELF"),
+                "DECOR", List.of("TABLE", "STORAGE", "LIGHTING"),
+                "OFFICE", List.of("DESK", "CHAIR", "STORAGE")
         );
 
         return related.getOrDefault(selectedCategory, List.of())
@@ -272,6 +391,10 @@ public class FurnitureItemController {
         String color = normalize(itemColor);
 
         Map<String, List<String>> related = Map.of(
+                "WARM NEUTRAL", List.of("BEIGE", "CREAM", "IVORY", "TAN", "BROWN", "NATURAL"),
+                "COOL NEUTRAL", List.of("GRAY", "WHITE", "BLACK", "SILVER"),
+                "EARTHY", List.of("GREEN", "BROWN", "NATURAL", "OAK", "WALNUT"),
+                "B & W", List.of("BLACK", "WHITE", "GRAY"),
                 "BEIGE", List.of("CREAM", "IVORY", "WHITE", "TAN", "BROWN", "NATURAL"),
                 "WHITE", List.of("IVORY", "CREAM", "BEIGE", "NATURAL"),
                 "BLACK", List.of("GRAY", "DARK GRAY", "BROWN"),
@@ -321,6 +444,22 @@ public class FurnitureItemController {
                 .replace("-", " ")
                 .replace(",", " ")
                 .trim();
+    }
+
+    private List<String> parseJsonList(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+
+        return Arrays.stream(
+                        json.replace("[", "")
+                                .replace("]", "")
+                                .replace("\"", "")
+                                .split(",")
+                )
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .toList();
     }
 
     private Integer getSafePrice(FurnitureItem item) {
