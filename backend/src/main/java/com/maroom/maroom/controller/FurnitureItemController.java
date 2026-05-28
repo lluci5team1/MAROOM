@@ -3,18 +3,15 @@ package com.maroom.maroom.controller;
 import com.maroom.maroom.domain.FurnitureItem;
 import com.maroom.maroom.repository.FurnitureItemRepository;
 import com.maroom.maroom.service.FurnitureEmbeddingService;
-import jakarta.persistence.criteria.Predicate;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/furniture-items")
+@CrossOrigin
 public class FurnitureItemController {
 
     private final FurnitureItemRepository repo;
@@ -44,9 +41,11 @@ public class FurnitureItemController {
                     furnitureEmbeddingService.backfillMissingEmbeddingsWindow(limit, batchSize, offset)
             );
         }
-        return ResponseEntity.ok(furnitureEmbeddingService.backfillMissingEmbeddings(limit, batchSize));
-    }
 
+        return ResponseEntity.ok(
+                furnitureEmbeddingService.backfillMissingEmbeddings(limit, batchSize)
+        );
+    }
 
     @GetMapping
     public ResponseEntity<List<FurnitureItem>> getAll() {
@@ -59,86 +58,294 @@ public class FurnitureItemController {
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) List<String> category,
             @RequestParam(required = false) List<String> roomType,
+            @RequestParam(required = false) List<String> style,
             @RequestParam(required = false) List<String> color,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) String sortBy
     ) {
-        Specification<FurnitureItem> spec = (root, query, cb) -> cb.conjunction();
+        List<FurnitureItem> items = repo.findAll();
 
-        if (q != null && !q.isBlank()) {
-            String pattern = "%" + q.toLowerCase() + "%";
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("title")), pattern));
-        }
-        if (brand != null && !brand.isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(cb.lower(root.get("brand")), brand.toLowerCase()));
-        }
-        if (category != null && !category.isEmpty()) {
-            List<String> normalized = category.stream().map(String::toLowerCase).toList();
-            spec = spec.and((root, query, cb) -> {
-                Predicate p = cb.disjunction();
-                for (String value : normalized) {
-                    String pattern = "%" + value + "%";
-                    p = cb.or(
-                            p,
-                            cb.like(cb.lower(root.get("category")), pattern),
-                            cb.like(cb.lower(root.get("roomType")), pattern)
-                    );
-                }
-                return p;
-            });
-        }
-        if (roomType != null && !roomType.isEmpty()) {
-            List<String> normalized = roomType.stream().map(String::toLowerCase).toList();
-            spec = spec.and((root, query, cb) -> {
-                Predicate p = cb.disjunction();
-                for (String value : normalized) {
-                    String pattern = "%" + value + "%";
-                    p = cb.or(p, cb.like(cb.lower(root.get("roomType")), pattern));
-                }
-                return p;
-            });
-        }
-        if (color != null && !color.isEmpty()) {
-            List<String> normalized = color.stream().map(String::toLowerCase).toList();
-            spec = spec.and((root, query, cb) -> {
-                Predicate p = cb.disjunction();
-                for (String value : normalized) {
-                    String[] tokens = value.split("[^a-z0-9]+");
-                    for (String token : tokens) {
-                        if (token.length() >= 3) {
-                            p = cb.or(p, cb.like(cb.lower(root.get("color")), "%" + token + "%"));
-                        }
-                    }
-                }
-                return p;
-            });
-        }
-        if (minPrice != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.get("price"), minPrice));
-        }
-        if (maxPrice != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.get("price"), maxPrice));
-        }
+        List<ScoredFurnitureItem> scoredItems = items.stream()
+                .map(item -> new ScoredFurnitureItem(
+                        item,
+                        calculateSearchScore(
+                                item,
+                                q,
+                                brand,
+                                category,
+                                roomType,
+                                style,
+                                color,
+                                minPrice,
+                                maxPrice
+                        )
+                ))
+                .filter(scored -> scored.score() > 0 || noFiltersApplied(
+                        q, brand, category, roomType, style, color, minPrice, maxPrice
+                ))
+                .collect(Collectors.toList());
 
-        Sort sort = Sort.unsorted();
         if ("price-high-to-low".equals(sortBy)) {
-            sort = Sort.by(Sort.Direction.DESC, "price");
+            scoredItems.sort(
+                    Comparator.comparing(
+                            (ScoredFurnitureItem scored) -> getSafePrice(scored.item())
+                    ).reversed()
+            );
         } else if ("price-low-to-high".equals(sortBy)) {
-            sort = Sort.by(Sort.Direction.ASC, "price");
+            scoredItems.sort(
+                    Comparator.comparing(scored -> getSafePrice(scored.item()))
+            );
+        } else {
+            scoredItems.sort(
+                    Comparator.comparingInt(ScoredFurnitureItem::score).reversed()
+            );
         }
 
-        return ResponseEntity.ok(repo.findAll(spec, sort));
+        List<FurnitureItem> result = scoredItems.stream()
+                .map(ScoredFurnitureItem::item)
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<FurnitureItem> getById(@PathVariable UUID id) {
         Optional<FurnitureItem> found = repo.findById(id);
+
         return found.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    private int calculateSearchScore(
+            FurnitureItem item,
+            String q,
+            String brand,
+            List<String> categories,
+            List<String> roomTypes,
+            List<String> styles,
+            List<String> colors,
+            Integer minPrice,
+            Integer maxPrice
+    ) {
+        int score = 0;
+
+        if (q != null && !q.isBlank()) {
+            String query = normalize(q);
+
+            if (contains(item.getTitle(), query)) {
+                score += 10;
+            }
+
+            if (contains(item.getCategory(), query)) {
+                score += 5;
+            }
+
+            if (contains(item.getStyle(), query)) {
+                score += 5;
+            }
+
+            if (contains(item.getColor(), query)) {
+                score += 3;
+            }
+
+            if (contains(item.getBrand(), query)) {
+                score += 3;
+            }
+        }
+
+        if (brand != null && !brand.isBlank()) {
+            if (contains(item.getBrand(), normalize(brand))) {
+                score += 8;
+            }
+        }
+
+        if (categories != null && !categories.isEmpty()) {
+            for (String category : categories) {
+                String normalizedCategory = normalize(category);
+
+                if (contains(item.getCategory(), normalizedCategory)) {
+                    score += 10;
+                } else if (isRelatedCategory(item.getCategory(), normalizedCategory)) {
+                    score += 4;
+                }
+            }
+        }
+
+        if (roomTypes != null && !roomTypes.isEmpty()) {
+            for (String roomType : roomTypes) {
+                String normalizedRoomType = normalize(roomType);
+
+                if (contains(item.getRoomType(), normalizedRoomType)) {
+                    score += 6;
+                } else if (isRelatedRoomType(item.getRoomType(), normalizedRoomType)) {
+                    score += 3;
+                }
+            }
+        }
+
+        if (styles != null && !styles.isEmpty()) {
+            for (String style : styles) {
+                String normalizedStyle = normalize(style);
+
+                if (contains(item.getStyle(), normalizedStyle)) {
+                    score += 10;
+                } else if (isRelatedStyle(item.getStyle(), normalizedStyle)) {
+                    score += 5;
+                }
+            }
+        }
+
+        if (colors != null && !colors.isEmpty()) {
+            for (String color : colors) {
+                String normalizedColor = normalize(color);
+
+                if (contains(item.getColor(), normalizedColor)) {
+                    score += 8;
+                } else if (isRelatedColor(item.getColor(), normalizedColor)) {
+                    score += 4;
+                }
+            }
+        }
+
+        if (isWithinPriceRange(item, minPrice, maxPrice)) {
+            score += 3;
+        } else if (minPrice != null || maxPrice != null) {
+            score -= 5;
+        }
+
+        return score;
+    }
+
+    private boolean isWithinPriceRange(FurnitureItem item, Integer minPrice, Integer maxPrice) {
+        if (item.getPrice() == null) {
+            return true;
+        }
+
+        if (minPrice != null && item.getPrice() < minPrice) {
+            return false;
+        }
+
+        if (maxPrice != null && item.getPrice() > maxPrice) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isRelatedCategory(String itemCategory, String selectedCategory) {
+        String category = normalize(itemCategory);
+
+        Map<String, List<String>> related = Map.of(
+                "CHAIR", List.of("SOFA", "BENCH", "STORAGE"),
+                "SOFA", List.of("CHAIR", "BENCH", "TABLE"),
+                "BED", List.of("STORAGE", "BENCH", "TABLE"),
+                "TABLE", List.of("CHAIR", "SOFA", "STORAGE"),
+                "STORAGE", List.of("TABLE", "BED", "CHAIR", "SOFA"),
+                "BENCH", List.of("BED", "CHAIR", "SOFA")
+        );
+
+        return related.getOrDefault(selectedCategory, List.of())
+                .stream()
+                .anyMatch(category::contains);
+    }
+
+    private boolean isRelatedStyle(String itemStyle, String selectedStyle) {
+        String style = normalize(itemStyle);
+
+        Map<String, List<String>> related = Map.of(
+                "MODERN", List.of("MINIMALIST", "SCANDINAVIAN", "MID CENTURY", "JAPANDI"),
+                "MINIMALIST", List.of("MODERN", "SCANDINAVIAN", "JAPANDI"),
+                "SCANDINAVIAN", List.of("MODERN", "MINIMALIST", "JAPANDI"),
+                "JAPANDI", List.of("SCANDINAVIAN", "MINIMALIST", "MODERN"),
+                "MID CENTURY", List.of("MODERN", "INDUSTRIAL"),
+                "BOHO", List.of("JAPANDI", "SCANDINAVIAN"),
+                "INDUSTRIAL", List.of("MODERN", "MID CENTURY")
+        );
+
+        return related.getOrDefault(selectedStyle, List.of())
+                .stream()
+                .anyMatch(style::contains);
+    }
+
+    private boolean isRelatedColor(String itemColor, String selectedColor) {
+        String color = normalize(itemColor);
+
+        Map<String, List<String>> related = Map.of(
+                "BEIGE", List.of("CREAM", "IVORY", "WHITE", "TAN", "BROWN", "NATURAL"),
+                "WHITE", List.of("IVORY", "CREAM", "BEIGE", "NATURAL"),
+                "BLACK", List.of("GRAY", "DARK GRAY", "BROWN"),
+                "GRAY", List.of("BLACK", "WHITE", "BEIGE", "SILVER"),
+                "BROWN", List.of("TAN", "BEIGE", "WALNUT", "OAK", "NATURAL"),
+                "GREEN", List.of("EARTHY", "BROWN", "NATURAL")
+        );
+
+        return related.getOrDefault(selectedColor, List.of())
+                .stream()
+                .anyMatch(color::contains);
+    }
+
+    private boolean isRelatedRoomType(String itemRoomType, String selectedRoomType) {
+        String roomType = normalize(itemRoomType);
+
+        if (selectedRoomType.contains("LIVING")) {
+            return roomType.contains("DINING") || roomType.contains("OFFICE");
+        }
+
+        if (selectedRoomType.contains("BEDROOM")) {
+            return roomType.contains("OFFICE") || roomType.contains("LIVING");
+        }
+
+        if (selectedRoomType.contains("OFFICE")) {
+            return roomType.contains("BEDROOM") || roomType.contains("LIVING");
+        }
+
+        return false;
+    }
+
+    private boolean contains(String value, String target) {
+        if (value == null || target == null) {
+            return false;
+        }
+
+        return normalize(value).contains(target);
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value.toUpperCase()
+                .replace("_", " ")
+                .replace("-", " ")
+                .replace(",", " ")
+                .trim();
+    }
+
+    private Integer getSafePrice(FurnitureItem item) {
+        return item.getPrice() == null ? Integer.MAX_VALUE : item.getPrice();
+    }
+
+    private boolean noFiltersApplied(
+            String q,
+            String brand,
+            List<String> category,
+            List<String> roomType,
+            List<String> style,
+            List<String> color,
+            Integer minPrice,
+            Integer maxPrice
+    ) {
+        return (q == null || q.isBlank())
+                && (brand == null || brand.isBlank())
+                && (category == null || category.isEmpty())
+                && (roomType == null || roomType.isEmpty())
+                && (style == null || style.isEmpty())
+                && (color == null || color.isEmpty())
+                && minPrice == null
+                && maxPrice == null;
+    }
+
+    private record ScoredFurnitureItem(FurnitureItem item, int score) {}
 }
