@@ -15,6 +15,7 @@ import { icons } from "../../shared/assets/icons";
 import { useRouter } from "expo-router";
 import { login } from "../../entities/user/api";
 import { saveToken, saveUserId, saveOnboardingFlag } from "../../shared/api/token";
+import { s, vs, ms } from "../../shared/utils/scale";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -149,46 +150,46 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    paddingHorizontal: 30,
+    paddingHorizontal: s(30),
     justifyContent: "center",
   },
   logo: {
-    fontSize: 42,
+    fontSize: ms(42),
     fontWeight: "800",
     color: "#04B0FF",
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: vs(40),
   },
   label: {
-    fontSize: 14,
-    marginTop: 15,
-    marginBottom: 5,
+    fontSize: ms(14),
+    marginTop: vs(15),
+    marginBottom: vs(5),
     color: "#1F2937",
     fontFamily: "Poppins_600SemiBold",
   },
   input: {
     borderBottomWidth: 2,
     borderBottomColor: "#04B0FF",
-    paddingVertical: 8,
+    paddingVertical: vs(8),
     fontFamily: "Poppins_400Regular",
   },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    marginTop: vs(20),
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: s(20),
+    height: s(20),
     borderWidth: 1,
     borderColor: "#04B0FF",
-    marginRight: 8,
+    marginRight: s(8),
     justifyContent: "center",
     alignItems: "center",
   },
   termsText: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "Poppins_400Regular",
   },
   link: {
@@ -197,20 +198,20 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: "#04B0FF",
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginTop: 25,
+    paddingVertical: vs(14),
+    borderRadius: ms(8),
+    marginTop: vs(25),
     alignItems: "center",
   },
   loginText: {
     color: "white",
-    fontSize: 16,
-    fontFamily: "Poppins_600SemiBold", // 👈 use bold version
+    fontSize: ms(16),
+    fontFamily: "Poppins_600SemiBold",
   },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: vs(20),
   },
   line: {
     flex: 1,
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ccc",
   },
   or: {
-    marginHorizontal: 10,
+    marginHorizontal: s(10),
     color: "#BFBFBF",
     fontFamily: "Poppins_400Regular",
   },
@@ -228,38 +229,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#ddd",
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginVertical: 6,
+    paddingVertical: vs(12),
+    borderRadius: ms(8),
+    marginVertical: vs(6),
   },
   socialText: {
-    marginLeft: 10,
-    fontSize: 14,
+    marginLeft: s(10),
+    fontSize: ms(14),
     color: "#1F2937",
     fontFamily: "Poppins_400Regular",
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 25,
+    marginTop: vs(25),
   },
   footerText: {
-    fontSize: 12,
+    fontSize: ms(12),
     fontFamily: "Poppins_400Regular",
     color: "#AEAEB2",
   },
   signupButton: {
     borderWidth: 2,
     borderColor: "#04B0FF",
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginTop: 10,
+    paddingVertical: vs(14),
+    borderRadius: ms(8),
+    marginTop: vs(10),
     alignItems: "center",
   },
-
   signupText: {
     color: "#04B0FF",
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: "Poppins_600SemiBold",
   },
 });

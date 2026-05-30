@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import Animated, {
@@ -13,7 +13,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { s, vs, ms } from "../../shared/utils/scale";
+import { savePreferences } from "../../entities/preferences/api";
+import { saveOnboardingFlag } from "../../shared/api/token";
 
 const LOOP = 10000;
 
@@ -274,17 +277,60 @@ function AnalysisAnimation() {
   );
 }
 
+const MIN_WAIT_MS = 4000;
+
 export function AnalyzingPage() {
+  const params = useLocalSearchParams<{
+    userId: string;
+    homeType: string;
+    roomSize: string;
+    styles: string;
+    colorPalette: string;
+    minBudget: string;
+    maxBudget: string;
+  }>();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const start = Date.now();
+
+    async function submit() {
+      try {
+        if (params.userId) {
+          await savePreferences({
+            userId: params.userId,
+            homeType: params.homeType,
+            roomSize: params.roomSize,
+            styles: JSON.parse(params.styles ?? "[]"),
+            colorPalette: JSON.parse(params.colorPalette ?? "[]"),
+            minBudget: Number(params.minBudget ?? 0),
+            maxBudget: Number(params.maxBudget ?? 4000),
+          });
+          await saveOnboardingFlag(true);
+        }
+      } catch (_) {}
+
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, MIN_WAIT_MS - elapsed);
+      setTimeout(() => setReady(true), remaining);
+    }
+
+    submit();
+  }, []);
+
   return (
     <View style={styles.container}>
       <AnalysisAnimation />
       <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.replace("/(main)" as any)}
-        activeOpacity={0.85}
+        style={[styles.button, !ready && styles.buttonPending]}
+        onPress={() => ready && router.replace("/(main)" as any)}
+        disabled={!ready}
+        activeOpacity={ready ? 0.85 : 1}
       >
-        <Text style={styles.buttonText}>Explore Rooms</Text>
-        <Feather name="arrow-right" size={20} color="#FFFFFF" />
+        <Text style={styles.buttonText}>
+          {ready ? "Explore Rooms" : "Analyzing..."}
+        </Text>
+        {ready && <Feather name="arrow-right" size={20} color="#FFFFFF" />}
       </TouchableOpacity>
     </View>
   );
@@ -296,27 +342,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    gap: 32,
-    paddingBottom: 40,
+    gap: vs(32),
+    paddingBottom: vs(40),
   },
   button: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: s(10),
     backgroundColor: "#00ADEF",
-    borderRadius: 50,
-    paddingVertical: 16,
-    paddingHorizontal: 36,
+    borderRadius: ms(50),
+    paddingVertical: vs(16),
+    paddingHorizontal: s(36),
     shadowColor: "#00ADEF",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: vs(6) },
     shadowOpacity: 0.4,
-    shadowRadius: 14,
+    shadowRadius: ms(14),
     elevation: 8,
+  },
+  buttonPending: {
+    opacity: 0.55,
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: "Poppins_600SemiBold",
   },
 });

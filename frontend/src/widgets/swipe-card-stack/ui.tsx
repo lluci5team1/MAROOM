@@ -1,5 +1,6 @@
 // widgets/swipe-card-deck/ui/SwipeCardDeck.tsx
 import { View, StyleSheet } from "react-native";
+import { s, vs } from "../../shared/utils/scale";
 import { useEffect, useRef, useState } from "react";
 import { useSharedValue, SharedValue } from "react-native-reanimated";
 import { Product } from "../../entities/product/type";
@@ -8,7 +9,8 @@ import { SwipeableCard } from "../../features/main-page/swipeable-card/swipeable
 import { ProductCardBack } from "../../shared/ui/ProductCardBack";
 import { RoundButton } from "../../shared/ui/likeButton";
 import { icons } from "../../shared/assets/icons";
-import { swipeProduct } from "../../entities/product/api";
+import { saveProductForUser, swipeProduct } from "../../entities/product/api";
+import { _cachedSaved, invalidateSavedCache } from "../../pages/04_saved/ui";
 
 type Props = {
   products: Product[];
@@ -31,6 +33,7 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
   const loadingMore = useRef(false);
   const initialized = useRef(false);
   const seenIds = useRef(new Set<string>());
+  const savedIds = useRef(new Set<string>(_cachedSaved.map((p) => p.id)));
   const ACTIVE_PRESS_MS = 420;
   const SWIPE_TRIGGER_DELAY_MS = 130;
 
@@ -54,6 +57,12 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
     const swipeRequest = userId
       ? swipeProduct(userId, item.id, direction).catch(() => {})
       : Promise.resolve();
+
+    if (userId && direction === "RIGHT" && !savedIds.current.has(item.id)) {
+      savedIds.current.add(item.id);
+      saveProductForUser(userId, item.id).catch(() => {});
+      invalidateSavedCache();
+    }
 
     if (onLoadMore && !loadingMore.current && data.length - nextIndex <= LOAD_MORE_THRESHOLD) {
       loadingMore.current = true;
@@ -81,28 +90,29 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
 
   return (
     <View style={styles.container}>
-      {data.map((item, index) => {
-        if (index < currentIndex || index > currentIndex + MAX) return null;
+      <View style={styles.cardArea}>
+        {data.map((item, index) => {
+          if (index < currentIndex || index > currentIndex + MAX) return null;
 
-        return (
-          <SwipeableCard
-            key={index}
-            index={index}
-            currentIndex={currentIndex}
-            animatedValues={animatedValues}
-            maxVisibleItem={MAX}
-            dataLength={data.length}
-            registerActions={(actions) => {
-              setSwipeActions(actions);
-            }}
-            onSwiped={(direction) => handleSwiped(direction, item)}
-            front={<ProductCard product={item} />}
-            back={<ProductCardBack product={item} />}
-          />
-        );
-      })}
+          return (
+            <SwipeableCard
+              key={index}
+              index={index}
+              currentIndex={currentIndex}
+              animatedValues={animatedValues}
+              maxVisibleItem={MAX}
+              dataLength={data.length}
+              registerActions={(actions) => {
+                setSwipeActions(actions);
+              }}
+              onSwiped={(direction) => handleSwiped(direction, item)}
+              front={<ProductCard product={item} />}
+              back={<ProductCardBack product={item} />}
+            />
+          );
+        })}
+      </View>
 
-      {/* External buttons */}
       <View style={styles.actions}>
         <RoundButton
           icon={icons.X}
@@ -140,14 +150,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  cardArea: {
+    flex: 1,
+    width: "100%",
   },
   actions: {
-    position: "absolute",
-    bottom: 24,
+    paddingTop: vs(12),
+    paddingBottom: vs(24),
     flexDirection: "row",
     alignItems: "center",
-    gap: 32,
-    zIndex: 999,
+    justifyContent: "center",
+    gap: s(32),
   },
 });

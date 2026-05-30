@@ -1,4 +1,5 @@
 import { Pressable, Text, StyleSheet } from "react-native";
+import { s, vs, ms } from "../../utils/scale";
 
 type Props = {
   text: string;
@@ -19,8 +20,8 @@ export function CategoryButton({ text, isSelected, onPress }: Props) {
 
 const styles = StyleSheet.create({
   chip: {
-    height: 38,
-    paddingHorizontal: 18,
+    height: vs(38),
+    paddingHorizontal: s(18),
     borderRadius: 999,
     backgroundColor: "#EFEFEF",
     justifyContent: "center",
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#018ABD",
   },
   text: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#374151",
   },

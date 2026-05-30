@@ -1,5 +1,6 @@
 // features/swipe-behavior/ui/SwipeableCard.tsx
 import { View, StyleSheet, useWindowDimensions } from "react-native";
+import { s, vs } from "../../../shared/utils/scale";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSwipeGesture } from "./swipe-logic/useSwipeGesture";
 import { useFlipGesture } from "./flip-logic/useFlipGesture";
@@ -83,9 +84,9 @@ const styles = {
   },
   cardContainer: {
     position: "absolute" as const,
-    width: 332,
-    height: 480,
-    top: 50,
+    width: s(332),
+    height: s(460),
+    top: vs(30),
   },
   card: {
     position: "absolute" as const,

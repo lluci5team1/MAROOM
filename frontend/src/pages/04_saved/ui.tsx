@@ -10,18 +10,12 @@ import {
 import { useRouter } from "expo-router";
 
 import { Product } from "../../entities/product/type";
-import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { fetchSavedProducts } from "../../entities/product/api";
 import { getUserId } from "../../shared/api/token";
+import { s, vs, ms } from "../../shared/utils/scale";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 import CategoryButton from "../../shared/ui/saved/CategoryButton";
 import { SavedProductCard, CARD_W } from "../../shared/ui/saved/SavedProductCard";
-
-const MOCK_SAVED: Product[] = [
-  ...MOCK_PRODUCTS,
-  ...MOCK_PRODUCTS.map((p) => ({ ...p, id: p.id + "-s2" })),
-  ...MOCK_PRODUCTS.map((p) => ({ ...p, id: p.id + "-s3" })),
-];
 
 const CATEGORIES = ["All Items", "Living Room", "Bedroom", "Dining Room", "Office", "Outdoor"];
 
@@ -43,16 +37,15 @@ export function SavedPage() {
       const userId = await getUserId();
       if (userId) {
         const data = await fetchSavedProducts(userId);
-        const result = data.length > 0 ? data : MOCK_SAVED;
-        setProducts(result);
-        _cachedSaved = result;
+        setProducts(data);
+        _cachedSaved = data;
       } else {
-        setProducts(MOCK_SAVED);
-        _cachedSaved = MOCK_SAVED;
+        setProducts([]);
+        _cachedSaved = [];
       }
     } catch {
-      setProducts(MOCK_SAVED);
-      _cachedSaved = MOCK_SAVED;
+      setProducts([]);
+      _cachedSaved = [];
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -74,56 +67,52 @@ export function SavedPage() {
     return products.filter((p) => p.roomType === curCategory);
   }, [curCategory, products]);
 
-  // ensure even columns
   const displayItems = filtered.length % 2 !== 0 ? [...filtered, null] : filtered;
 
   if (loading && products.length === 0) return <LoadingScreen />;
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <Text style={styles.header}>Saved</Text>
       <View style={styles.divider} />
 
-      {/* Category chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-      >
-        {CATEGORIES.map((cat) => (
-          <CategoryButton
-            key={cat}
-            text={cat}
-            isSelected={curCategory === cat}
-            onPress={() => setCurCategory(cat)}
-          />
-        ))}
-      </ScrollView>
-
-      {/* Grid */}
       <FlatList
-          data={displayItems}
-          keyExtractor={(item, i) => item?.id ?? `empty-${i}`}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.grid}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          renderItem={({ item }) =>
-            item ? (
-              <SavedProductCard
-                product={item}
-                onPress={() =>
-                  router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item), initialSaved: "true" } })
-                }
+        data={displayItems}
+        keyExtractor={(item, i) => item?.id ?? `empty-${i}`}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.grid}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        ListHeaderComponent={
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chips}
+          >
+            {CATEGORIES.map((cat) => (
+              <CategoryButton
+                key={cat}
+                text={cat}
+                isSelected={curCategory === cat}
+                onPress={() => setCurCategory(cat)}
               />
-            ) : (
-              <View style={{ width: CARD_W }} />
-            )
-          }
-        />
-
+            ))}
+          </ScrollView>
+        }
+        renderItem={({ item }) =>
+          item ? (
+            <SavedProductCard
+              product={item}
+              onPress={() =>
+                router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item), initialSaved: "true" } })
+              }
+            />
+          ) : (
+            <View style={{ width: CARD_W }} />
+          )
+        }
+      />
     </View>
   );
 }
@@ -134,12 +123,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   header: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111827",
     textAlign: "center",
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingTop: vs(12),
+    paddingBottom: vs(14),
   },
   divider: {
     height: 1,
@@ -147,17 +136,17 @@ const styles = StyleSheet.create({
   },
   chips: {
     flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 52,
+    gap: s(10),
+    paddingHorizontal: s(16),
+    paddingTop: vs(14),
+    paddingBottom: vs(14),
   },
   grid: {
-    paddingHorizontal: 24,
-    paddingBottom: 100,
-    gap: 24,
+    paddingHorizontal: s(24),
+    paddingBottom: vs(100),
+    gap: vs(24),
   },
   row: {
-    gap: 14,
+    gap: s(14),
   },
 });

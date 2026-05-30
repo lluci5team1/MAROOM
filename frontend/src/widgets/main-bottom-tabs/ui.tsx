@@ -1,4 +1,5 @@
 import { View, Image, Pressable, StyleSheet, Text } from "react-native";
+import { s, vs, ms } from "../../shared/utils/scale";
 
 type TabItem = {
   key: string;
@@ -28,12 +29,7 @@ export function MainBottomTabs({ tabs, activeKey }: Props) {
               ]}
               resizeMode="contain"
             />
-            <Text
-              style={[
-                styles.label,
-                tab.key === activeKey && styles.activeLabel,
-              ]}
-            >
+            <Text style={[styles.label, tab.key === activeKey && styles.activeLabel]}>
               {tab.label}
             </Text>
           </View>
@@ -47,43 +43,43 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingTop: 12,
-    paddingHorizontal: 18,
-    paddingBottom: 22,
+    paddingTop: vs(12),
+    paddingHorizontal: s(18),
+    paddingBottom: vs(22),
     backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    borderTopLeftRadius: ms(28),
+    borderTopRightRadius: ms(28),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: vs(2) },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: ms(4),
     elevation: 5,
   },
   button: {
     flex: 1,
-    height: 60,
+    height: vs(60),
     justifyContent: "center",
     alignItems: "center",
   },
   contents: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
+    gap: vs(5),
     alignSelf: "stretch",
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingVertical: vs(6),
+    borderRadius: ms(18),
   },
   activeContents: {
     backgroundColor: "#F8FCFF",
-    marginHorizontal: 2,
+    marginHorizontal: s(2),
   },
   icon: {
-    width: 24,
-    height: 24,
+    width: s(24),
+    height: s(24),
   },
   label: {
     fontFamily: "NotoSans_400Regular",
-    fontSize: 12,
+    fontSize: ms(12),
     color: "#7E8B9A",
   },
   activeLabel: {

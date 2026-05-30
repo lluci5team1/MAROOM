@@ -1,5 +1,6 @@
 import { View, Text, Image, StyleSheet } from "react-native";
 import { Product } from "../../entities/product/type";
+import { s, vs, ms } from "../utils/scale";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
@@ -30,55 +31,55 @@ export function ProductCard({ product }: { product: Product }) {
 
 const styles = StyleSheet.create({
   shadowWrapper: {
-    width: 332,
-    height: 460,
-    borderRadius: 32,
+    width: s(332),
+    height: s(460),
+    borderRadius: ms(32),
     shadowColor: "#173B63",
-    shadowOffset: { width: 0, height: 18 },
+    shadowOffset: { width: 0, height: vs(18) },
     shadowOpacity: 0.16,
-    shadowRadius: 26,
+    shadowRadius: ms(26),
     elevation: 10,
   },
   card: {
     flex: 1,
     position: "relative",
     backgroundColor: "#FFFFFF",
-    borderRadius: 32,
+    borderRadius: ms(32),
     overflow: "hidden",
   },
   image: {
     width: "100%",
-    height: 374,
+    height: s(374),
     alignSelf: "flex-start",
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal: s(20),
+    paddingTop: vs(10),
+    paddingBottom: vs(20),
   },
   category: {
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: ms(12),
+    lineHeight: ms(14),
     color: "#7B8798",
     fontFamily: "Inter_400Regular",
   },
   bottomRow: {
-    marginTop: 3,
+    marginTop: vs(3),
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 12,
+    gap: s(12),
   },
   title: {
     flex: 1,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: ms(24),
+    lineHeight: ms(28),
     color: "#14233C",
     fontFamily: "Manrope_800ExtraBold",
   },
   price: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: ms(20),
+    lineHeight: ms(24),
     color: "#1399E5",
     fontFamily: "Manrope_700Bold",
   },

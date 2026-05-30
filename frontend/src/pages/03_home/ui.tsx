@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
-import { fetchFeed, fetchFurnitureItems } from "../../entities/product/api";
+import { fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { getUserId } from "../../shared/api/token";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
+import { s, vs, ms } from "../../shared/utils/scale";
 import { icons } from "../../shared/assets/icons";
 
 export function HomePage() {
@@ -18,7 +19,7 @@ export function HomePage() {
       try {
         const id = await getUserId();
         setUserId(id);
-        const data = id ? await fetchFeed(id, 20) : await fetchFurnitureItems();
+        const data = await fetchFurnitureItems();
         setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
       } catch (error) {
         console.error("Failed to fetch furniture:", error);
@@ -32,13 +33,12 @@ export function HomePage() {
   }, []);
 
   const handleLoadMore = useCallback(async () => {
-    if (!userId) return [];
     try {
-      return await fetchFeed(userId, 20);
+      return await fetchFurnitureItems();
     } catch {
       return [];
     }
-  }, [userId]);
+  }, []);
 
   if (loading) {
     return <LoadingScreen />;
@@ -67,53 +67,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 24,
-    paddingTop:20,
-    paddingBottom: 12,
+    paddingHorizontal: s(24),
+    paddingTop: vs(20),
+    paddingBottom: vs(12),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 8,
+    marginTop: vs(8),
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: s(8),
   },
   LOGO2: {
-    width: 30,
-    height: 30,
+    width: s(30),
+    height: s(30),
   },
   title: {
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: ms(30),
+    lineHeight: ms(36),
     color: "#2C84C6",
     fontFamily: "Poppins_700Bold",
     letterSpacing: 0.3,
   },
   logoBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: s(52),
+    height: s(52),
+    borderRadius: ms(26),
     backgroundColor: "#E3F0FA",
     alignItems: "center",
     justifyContent: "center",
   },
   logo: {
-    width: 30,
-    height: 30,
+    width: s(30),
+    height: s(30),
   },
   deckContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: s(16),
+    paddingBottom: vs(12),
   },
   deckFrame: {
     flex: 1,
     width: "100%",
-    maxWidth: 380,
-    maxHeight: 680,
+    maxWidth: s(380),
+    maxHeight: vs(680),
   },
 });

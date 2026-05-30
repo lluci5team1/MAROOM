@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 const SHEET_HEIGHT = Dimensions.get("window").height * (3 / 4);
+import { s, vs, ms } from "../../../shared/utils/scale";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -405,19 +406,19 @@ const styles = StyleSheet.create({
     right: 0,
     height: SHEET_HEIGHT,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    borderTopLeftRadius: ms(24),
+    borderTopRightRadius: ms(24),
+    paddingHorizontal: s(20),
+    paddingTop: vs(16),
   },
 
   handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+    width: s(40),
+    height: vs(4),
+    borderRadius: ms(2),
     backgroundColor: "#D1D5DB",
     alignSelf: "center",
-    marginBottom: 12,
+    marginBottom: vs(12),
   },
 
   // Header
@@ -425,43 +426,43 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 48,
-    marginBottom: 4,
+    height: vs(48),
+    marginBottom: vs(4),
   },
-  headerBtn: { width: 32 },
+  headerBtn: { width: s(32) },
   headerTitle: {
-    fontSize: 17,
+    fontSize: ms(17),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111",
   },
   resetText: {
-    fontSize: 15,
+    fontSize: ms(15),
     color: "#018ABD",
     fontFamily: "PlusJakartaSans_600SemiBold",
     textAlign: "right",
-    width: 48,
+    width: s(48),
   },
 
   scroll: { flex: 1 },
-  scrollPad: { paddingTop: 8, paddingBottom: 12 },
+  scrollPad: { paddingTop: vs(8), paddingBottom: vs(12) },
 
   // Sort chips
   sectionLabel: {
-    fontSize: 15,
+    fontSize: ms(15),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111",
-    marginBottom: 12,
-    marginTop: 8,
+    marginBottom: vs(12),
+    marginTop: vs(8),
   },
   chipsRow: {
     flexDirection: "row",
-    gap: 8,
-    paddingBottom: 4,
-    marginBottom: 20,
+    gap: s(8),
+    paddingBottom: vs(4),
+    marginBottom: vs(20),
   },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: s(16),
+    paddingVertical: vs(8),
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#D1D5DB",
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     borderColor: "#018ABD",
   },
   chipText: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#374151",
   },
@@ -489,40 +490,40 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   priceValue: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#018ABD",
   },
 
   // Parameters
   paramsLabel: {
-    marginTop: 24,
+    marginTop: vs(24),
     color: "#6B7280",
-    fontSize: 13,
+    fontSize: ms(13),
   },
   paramRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: vs(16),
   },
   paramLabel: {
-    fontSize: 15,
+    fontSize: ms(15),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#111",
   },
   paramRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: s(6),
   },
   paramColorDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: s(14),
+    height: s(14),
+    borderRadius: s(7),
   },
   paramValue: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#018ABD",
   },
@@ -536,17 +537,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 18,
+    paddingVertical: vs(18),
   },
   checkLabel: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#111",
   },
   checkCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: s(26),
+    height: s(26),
+    borderRadius: ms(13),
     borderWidth: 1.5,
     borderColor: "#D1D5DB",
     alignItems: "center",
@@ -562,34 +563,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F3F6FA",
-    borderRadius: 16,
-    padding: 14,
-    gap: 14,
+    borderRadius: ms(16),
+    padding: s(14),
+    gap: s(14),
   },
   itemImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: s(48),
+    height: s(48),
+    borderRadius: ms(24),
     backgroundColor: "#D1D5DB",
   },
   itemText: {
     flex: 1,
-    gap: 2,
+    gap: vs(2),
   },
   itemName: {
-    fontSize: 15,
+    fontSize: ms(15),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111",
   },
   itemSubtitle: {
-    fontSize: 12,
+    fontSize: ms(12),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#6B7280",
   },
   radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: s(24),
+    height: s(24),
+    borderRadius: ms(12),
     borderWidth: 1.5,
     borderColor: "#D1D5DB",
     backgroundColor: "#fff",
@@ -601,16 +602,16 @@ const styles = StyleSheet.create({
 
   // Apply button
   applyButton: {
-    marginTop: 12,
-    height: 54,
-    borderRadius: 30,
+    marginTop: vs(12),
+    height: vs(54),
+    borderRadius: ms(30),
     backgroundColor: "#018ABD",
     alignItems: "center",
     justifyContent: "center",
   },
   applyText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: "PlusJakartaSans_600SemiBold",
   },
 });

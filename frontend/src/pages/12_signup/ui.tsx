@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { signup } from "../../entities/user/api";
 import { saveToken, saveUserId } from "../../shared/api/token";
+import { s, vs, ms } from "../../shared/utils/scale";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -122,22 +123,22 @@ const styles = StyleSheet.create({
 
   inner: {
     flex: 1,
-    paddingHorizontal: 30,
+    paddingHorizontal: s(30),
     justifyContent: "center",
   },
 
   logo: {
-    fontSize: 42,
+    fontSize: ms(42),
     fontWeight: "800",
     color: "#04B0FF",
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: vs(40),
   },
 
   label: {
-    fontSize: 14,
-    marginTop: 15,
-    marginBottom: 5,
+    fontSize: ms(14),
+    marginTop: vs(15),
+    marginBottom: vs(5),
     color: "#1F2937",
     fontFamily: "Poppins_600SemiBold",
   },
@@ -145,27 +146,27 @@ const styles = StyleSheet.create({
   input: {
     borderBottomWidth: 2,
     borderBottomColor: "#04B0FF",
-    paddingVertical: 8,
+    paddingVertical: vs(8),
     fontFamily: "Poppins_400Regular",
   },
 
   signupButton: {
     backgroundColor: "#04B0FF",
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginTop: 30,
+    paddingVertical: vs(14),
+    borderRadius: ms(8),
+    marginTop: vs(30),
     alignItems: "center",
   },
 
   signupText: {
     color: "white",
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: "Poppins_600SemiBold",
   },
 
   backText: {
     textAlign: "center",
-    marginTop: 20,
+    marginTop: vs(20),
     fontFamily: "Poppins_400Regular",
     color: "#6B7280",
   },

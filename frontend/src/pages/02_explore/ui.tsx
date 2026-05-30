@@ -14,18 +14,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { icons } from "../../shared/assets/icons";
+import { s, vs, ms } from "../../shared/utils/scale";
 import { _cachedSaved } from "../04_saved/ui";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
 import { DEFAULT_FILTER, FilterState, PRICE_MAX, PRICE_MIN } from "../../features/filter/model/type";
-import { searchFurnitureItems } from "../../entities/product/api";
+import { fetchFeed, searchFurnitureItems } from "../../entities/product/api";
+import { getUserId } from "../../shared/api/token";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { Product } from "../../entities/product/type";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const H_PAD = 16;
-const GAP = 10;
+const H_PAD = s(16);
+const GAP = s(10);
 const USABLE = SCREEN_WIDTH - H_PAD * 2;
 
 // Block A / C  (big + 2 small) — all squares
@@ -36,7 +38,7 @@ const BIG_H = BIG_W;
 
 // Block B  (3 equal)
 const COL3_W = Math.floor((USABLE - GAP * 2) / 3);
-const ROW3_H = 130;
+const ROW3_H = COL3_W;
 
 // ─── Module-level cache (survives tab switches) ───────────────────────────────
 let _cachedProducts: Product[] = [];
@@ -96,9 +98,9 @@ function ThreeDotsLoader() {
     return () => clearInterval(id);
   }, []);
   return (
-    <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", paddingVertical: 24, gap: 8 }}>
+    <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", paddingVertical: vs(24), gap: s(8) }}>
       {[0, 1, 2].map((i) => (
-        <View key={i} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: active === i ? "#1A1A1A" : "#D1D5DB" }} />
+        <View key={i} style={{ width: s(10), height: s(10), borderRadius: s(5), backgroundColor: active === i ? "#1A1A1A" : "#D1D5DB" }} />
       ))}
     </View>
   );
@@ -111,7 +113,7 @@ function GridImage({ item, width, height, router }: { item: Product; width: numb
       {!!item.imageUrl && (
         <Image
           source={{ uri: item.imageUrl }}
-          style={{ width, height, borderRadius: 14, backgroundColor: "#F1F5F9" }}
+          style={{ width, height, borderRadius: ms(14), backgroundColor: "#F1F5F9" }}
           resizeMode="cover"
         />
       )}
@@ -165,22 +167,29 @@ export function ExplorePage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
-    try {
-      const data = await searchFurnitureItems({
-        q: searchText,
-        brand: filter.brand,
-        category: filter.category,
-        color: expandColorNames(filter.color),
-        minPrice: filter.priceRange.min > PRICE_MIN ? filter.priceRange.min : undefined,
-        maxPrice: filter.priceRange.max < PRICE_MAX ? filter.priceRange.max : undefined,
-        sortBy: filter.sortBy,
-      });
+    const isDefault = !searchText && !filter.brand && filter.category.length === 0
+      && filter.color.length === 0 && filter.style.length === 0
+      && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX;
 
-      const isDefault = !searchText && !filter.brand && filter.category.length === 0
-        && filter.color.length === 0 && filter.style.length === 0
-        && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX;
+    try {
+      let data: Product[];
+
+      if (isDefault && userIdRef.current) {
+        data = await fetchFeed(userIdRef.current, 60);
+      } else {
+        data = await searchFurnitureItems({
+          q: searchText,
+          brand: filter.brand,
+          category: filter.category,
+          color: expandColorNames(filter.color),
+          minPrice: filter.priceRange.min > PRICE_MIN ? filter.priceRange.min : undefined,
+          maxPrice: filter.priceRange.max < PRICE_MAX ? filter.priceRange.max : undefined,
+          sortBy: filter.sortBy,
+        });
+      }
 
       // Only fall back to mock when no filter is active and backend returned nothing
       const base = (!isDefault || data.length > 0)
@@ -197,8 +206,6 @@ export function ExplorePage() {
       if (isDefault) _cachedProducts = result;
     } catch {
       // On error only fall back to mock when no filter is active
-      const isDefault = !searchText && !filter.brand && filter.category.length === 0
-        && filter.color.length === 0 && filter.style.length === 0;
       if (isDefault) {
         const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
         setProducts(fallback);
@@ -211,7 +218,11 @@ export function ExplorePage() {
   }, []);
 
   useEffect(() => {
-    if (_cachedProducts.length === 0) loadProducts("", DEFAULT_FILTER);
+    if (_cachedProducts.length > 0) return;
+    getUserId()
+      .then((id) => { userIdRef.current = id; })
+      .catch(() => {})
+      .finally(() => loadProducts("", DEFAULT_FILTER));
   }, []);
 
   const handleRefresh = useCallback(() => {
@@ -318,52 +329,50 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    height: 48,
+    height: vs(48),
     backgroundColor: "#F1F5F9",
     marginHorizontal: H_PAD,
-    marginTop: 8,
-    marginBottom: 14,
+    marginTop: vs(8),
+    marginBottom: vs(14),
     borderRadius: 999,
-    paddingHorizontal: 16,
+    paddingHorizontal: s(16),
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: ms(14),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#1E293B",
   },
   divider: {
-    height: 3,
+    height: vs(3),
     backgroundColor: "#E2E8F0",
-    marginBottom: 14,
+    marginBottom: vs(14),
   },
   grid: {
     paddingHorizontal: H_PAD,
-    paddingBottom: 100,
+    paddingBottom: vs(100),
     gap: GAP,
   },
-  block: {
-    // gap + marginBottom handled per block via grid gap
-  },
+  block: {},
   filterButton: {
     position: "absolute",
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: s(20),
+    bottom: vs(20),
+    width: s(56),
+    height: s(56),
+    borderRadius: s(28),
     backgroundColor: "#018ABD",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
     elevation: 10,
     shadowColor: "#018ABD",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: vs(4) },
     shadowOpacity: 0.35,
-    shadowRadius: 8,
+    shadowRadius: ms(8),
   },
-  filterIcon: { width: 26, height: 26, tintColor: "white" },
-  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
-  emptyTitle: { fontSize: 18, fontFamily: "PlusJakartaSans_600SemiBold", color: "#111" },
-  emptySubtitle: { fontSize: 13, fontFamily: "PlusJakartaSans_400Regular", color: "#888", textAlign: "center", lineHeight: 20 },
+  filterIcon: { width: s(26), height: s(26), tintColor: "white" },
+  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: vs(12) },
+  emptyTitle: { fontSize: ms(18), fontFamily: "PlusJakartaSans_600SemiBold", color: "#111" },
+  emptySubtitle: { fontSize: ms(13), fontFamily: "PlusJakartaSans_400Regular", color: "#888", textAlign: "center", lineHeight: ms(20) },
 });

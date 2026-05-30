@@ -4,6 +4,7 @@ import {
   ImageSourcePropType,
   Pressable,
 } from "react-native";
+import { s, vs, ms } from "../utils/scale";
 import { useState } from "react";
 import { icons } from "../assets/icons";
 import Animated, {
@@ -184,29 +185,29 @@ export function RoundButton({
 
 const styles = StyleSheet.create({
   shadowWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 46,
+    width: s(90),
+    height: s(90),
+    borderRadius: ms(46),
     overflow: "visible",
   },
   buttonOuter: {
     flex: 1,
-    borderRadius: 46,
+    borderRadius: ms(46),
     shadowColor: "#173B63",
-    shadowOffset: { width: 0, height: 12 },
+    shadowOffset: { width: 0, height: vs(12) },
     shadowOpacity: 0.22,
-    shadowRadius: 16,
+    shadowRadius: ms(16),
     elevation: 12,
   },
   buttonOuterPressed: {
-    shadowOffset: { width: 0, height: 24 },
+    shadowOffset: { width: 0, height: vs(24) },
     shadowOpacity: 0.95,
-    shadowRadius: 24,
+    shadowRadius: ms(24),
     elevation: 24,
   },
   buttonInner: {
     flex: 1,
-    borderRadius: 46,
+    borderRadius: ms(46),
     overflow: "hidden",
     backgroundColor: "#EEF0F3",
     justifyContent: "center",

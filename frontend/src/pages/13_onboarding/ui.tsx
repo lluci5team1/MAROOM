@@ -12,16 +12,17 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { icons } from "../../shared/assets/icons";
-import { savePreferences } from "../../entities/preferences/api";
-import { getUserId, saveOnboardingFlag } from "../../shared/api/token";
+import { getUserId } from "../../shared/api/token";
+
+import { s as sc, vs, ms } from "../../shared/utils/scale";
 
 const { width: W } = Dimensions.get("window");
 const BLUE = "#018ABD";
-const SLIDER_W = W - 64;
+const SLIDER_W = W - sc(64);
 const MIN_BUDGET = 0;
 const MAX_BUDGET = 4000;
 const TOTAL = 5;
-const CARD_W = Math.floor((W - 48 - 14) / 2);
+const CARD_W = Math.floor((W - sc(48) - sc(14)) / 2);
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -397,22 +398,19 @@ export function OnboardingPage() {
 
   const next = async () => {
     if (step < 5) { setStep(step + 1); return; }
-    try {
-      const userId = await getUserId();
-      if (userId) {
-        await savePreferences({
-          userId,
-          homeType: HOME_TYPE_MAP[spaceType ?? ""] ?? "1_BEDROOM",
-          roomSize: ROOM_SIZE_MAP[spaceSize ?? ""] ?? "MEDIUM",
-          styles: selectedStyles.map((s) => STYLE_MAP[s] ?? s.toUpperCase()),
-          colorPalette: selectedColor ? [COLOR_MAP[selectedColor] ?? selectedColor.toUpperCase()] : ["WARM_NEUTRAL"],
-          minBudget: budgetMin,
-          maxBudget: budgetMax,
-        });
-        await saveOnboardingFlag(true);
-      }
-    } catch (_) {}
-    router.replace("/analyzing");
+    const userId = await getUserId().catch(() => null);
+    router.replace({
+      pathname: "/analyzing",
+      params: {
+        userId: userId ?? "",
+        homeType: HOME_TYPE_MAP[spaceType ?? ""] ?? "1_BEDROOM",
+        roomSize: ROOM_SIZE_MAP[spaceSize ?? ""] ?? "MEDIUM",
+        styles: JSON.stringify(selectedStyles.map((st) => STYLE_MAP[st] ?? st.toUpperCase())),
+        colorPalette: JSON.stringify(selectedColor ? [COLOR_MAP[selectedColor] ?? selectedColor.toUpperCase()] : ["WARM_NEUTRAL"]),
+        minBudget: String(budgetMin),
+        maxBudget: String(budgetMax),
+      },
+    } as any);
   };
   const back = () => setStep(step - 1);
 
@@ -461,53 +459,53 @@ const s = StyleSheet.create({
     backgroundColor: BLUE,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingHorizontal: 28,
-    paddingBottom: 52,
+    paddingHorizontal: sc(28),
+    paddingBottom: vs(52),
   },
   logoRow: {
     position: "absolute",
-    top: 72,
-    left: 24,
+    top: vs(72),
+    left: sc(24),
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: sc(8),
   },
-  logoImg: { width: 36, height: 36 },
+  logoImg: { width: sc(36), height: sc(36) },
   logoText: {
-    fontSize: 20,
+    fontSize: ms(20),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#fff",
     letterSpacing: 1.5,
   },
   illustration: {
     position: "absolute",
-    top: 110,
+    top: vs(110),
     width: "100%",
     height: "52%",
   },
-  welcomeBlock: { alignItems: "center", marginBottom: 32 },
+  welcomeBlock: { alignItems: "center", marginBottom: vs(32) },
   welcomeTitle: {
-    fontSize: 28,
+    fontSize: ms(28),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#fff",
-    marginBottom: 12,
+    marginBottom: vs(12),
     textAlign: "center",
   },
   welcomeSub: {
-    fontSize: 15,
+    fontSize: ms(15),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: ms(22),
   },
   getStartedBtn: {
     backgroundColor: "#fff",
-    paddingVertical: 16,
-    paddingHorizontal: 60,
+    paddingVertical: vs(16),
+    paddingHorizontal: sc(60),
     borderRadius: 999,
   },
   getStartedText: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: BLUE,
   },
@@ -516,39 +514,39 @@ const s = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 56,
+    paddingTop: vs(56),
   },
   progressTrack: {
-    height: 4,
+    height: vs(4),
     backgroundColor: "#E5E7EB",
   },
   progressFill: {
-    height: 4,
+    height: vs(4),
     backgroundColor: BLUE,
-    borderRadius: 2,
+    borderRadius: ms(2),
   },
   stepLabel: {
-    fontSize: 11,
+    fontSize: ms(11),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#9CA3AF",
     letterSpacing: 1.5,
     textAlign: "center",
-    marginTop: 16,
-    marginBottom: 4,
+    marginTop: vs(16),
+    marginBottom: vs(4),
   },
   question: {
-    fontSize: 26,
+    fontSize: ms(26),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111827",
-    lineHeight: 34,
-    paddingHorizontal: 24,
-    marginTop: 12,
-    marginBottom: 28,
+    lineHeight: ms(34),
+    paddingHorizontal: sc(24),
+    marginTop: vs(12),
+    marginBottom: vs(28),
   },
   list: {
     flex: 1,
-    paddingHorizontal: 24,
-    gap: 18,
+    paddingHorizontal: sc(24),
+    gap: vs(18),
   },
 
   // Option rows (step 1 & 2)
@@ -557,46 +555,46 @@ const s = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 999,
-    paddingVertical: 22,
-    paddingHorizontal: 20,
-    gap: 16,
+    paddingVertical: vs(22),
+    paddingHorizontal: sc(20),
+    gap: sc(16),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: vs(2) },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: ms(8),
     elevation: 3,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: sc(48),
+    height: sc(48),
+    borderRadius: ms(24),
     backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
   },
   optionLabel: {
     flex: 1,
-    fontSize: 17,
+    fontSize: ms(17),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111827",
   },
   optionSub: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#6B7280",
-    marginTop: 2,
+    marginTop: vs(2),
   },
 
   // Style grid (step 3)
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 14,
+    gap: sc(14),
   },
   styleCard: {
     width: CARD_W,
     backgroundColor: "#F9FAFB",
-    borderRadius: 16,
+    borderRadius: ms(16),
     overflow: "hidden",
     borderWidth: 2,
     borderColor: "transparent",
@@ -612,26 +610,26 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: sc(10),
+    paddingVertical: vs(10),
   },
   styleLabel: {
     flex: 1,
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111827",
-    lineHeight: 18,
+    lineHeight: ms(18),
   },
 
   // Color grid (step 4)
   colorCard: {
     width: CARD_W,
     backgroundColor: "#F3F4F6",
-    borderRadius: 40,
-    padding: 20,
+    borderRadius: ms(40),
+    padding: sc(20),
     borderWidth: 2,
     borderColor: "transparent",
-    gap: 6,
+    gap: vs(6),
   },
   colorCardOn: {
     borderColor: BLUE,
@@ -640,13 +638,13 @@ const s = StyleSheet.create({
     position: "relative",
   },
   swatchClip: {
-    height: 63,
+    height: vs(63),
     overflow: "hidden",
   },
   colorRadioOverlay: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: vs(6),
+    right: sc(6),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -654,19 +652,19 @@ const s = StyleSheet.create({
     flexDirection: "row",
     borderRadius: 999,
     overflow: "hidden",
-    height: 80,
-    gap: 3,
+    height: vs(80),
+    gap: sc(3),
     backgroundColor: "#F3F4F6",
   },
   swatch: { flex: 1 },
   paletteName: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111827",
-    marginTop: 2,
+    marginTop: vs(2),
   },
   paletteSub: {
-    fontSize: 10,
+    fontSize: ms(10),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#9CA3AF",
     letterSpacing: 0.5,
@@ -674,38 +672,38 @@ const s = StyleSheet.create({
 
   // Budget slider (step 5)
   rangeLabel: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#9CA3AF",
-    marginBottom: 12,
+    marginBottom: vs(12),
   },
-  sliderWrap: { gap: 12 },
+  sliderWrap: { gap: vs(12) },
   sliderTrack: {
-    height: 4,
+    height: vs(4),
     backgroundColor: "#E5E7EB",
-    borderRadius: 2,
+    borderRadius: ms(2),
     position: "relative",
   },
   sliderFill: {
     position: "absolute",
     top: 0,
-    height: 4,
+    height: vs(4),
     backgroundColor: BLUE,
-    borderRadius: 2,
+    borderRadius: ms(2),
   },
   thumb: {
     position: "absolute",
-    top: -8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: -vs(8),
+    width: sc(20),
+    height: sc(20),
+    borderRadius: ms(10),
     backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: BLUE,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: vs(2) },
     shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowRadius: ms(4),
     elevation: 3,
   },
   sliderLabels: {
@@ -713,16 +711,16 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
   },
   sliderVal: {
-    fontSize: 12,
+    fontSize: ms(12),
     fontFamily: "PlusJakartaSans_400Regular",
     color: "#9CA3AF",
   },
 
   // Radio
   radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: sc(22),
+    height: sc(22),
+    borderRadius: ms(11),
     borderWidth: 1.5,
     borderColor: "#D1D5DB",
     alignItems: "center",
@@ -733,9 +731,9 @@ const s = StyleSheet.create({
     borderColor: BLUE,
   },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: sc(12),
+    height: sc(12),
+    borderRadius: ms(6),
     backgroundColor: BLUE,
   },
 
@@ -744,9 +742,9 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    paddingBottom: 32,
+    paddingHorizontal: sc(24),
+    paddingVertical: vs(16),
+    paddingBottom: vs(32),
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
     backgroundColor: "#fff",
@@ -754,11 +752,11 @@ const s = StyleSheet.create({
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: sc(4),
     flex: 1,
   },
   backText: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#6B7280",
     letterSpacing: 0.5,
@@ -766,17 +764,17 @@ const s = StyleSheet.create({
   continueBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: sc(4),
     backgroundColor: BLUE,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: sc(24),
+    paddingVertical: vs(14),
     borderRadius: 999,
   },
   continueBtnOff: {
     opacity: 0.4,
   },
   continueText: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#fff",
     letterSpacing: 0.5,

@@ -1,10 +1,11 @@
 import { View, Text, Image, StyleSheet, Pressable, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Product } from "../../../entities/product/type";
+import { s, vs, ms } from "../../utils/scale";
 
 const SCREEN_W = Dimensions.get("window").width;
-const H_PAD = 24;
-const GAP = 14;
+const H_PAD = s(24);
+const GAP = s(14);
 export const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - GAP) / 2);
 
 type Props = {
@@ -24,7 +25,7 @@ export function SavedProductCard({ product, onPress }: Props) {
           />
         )}
         <View style={styles.bookmarkBtn}>
-          <Ionicons name="bookmark" size={16} color="#018ABD" />
+          <Ionicons name="bookmark" size={ms(16)} color="#018ABD" />
         </View>
       </View>
       <Text style={styles.title} numberOfLines={2}>
@@ -42,10 +43,10 @@ const styles = StyleSheet.create({
   imageWrapper: {
     width: CARD_W,
     height: Math.floor(CARD_W * 1.3),
-    borderRadius: 16,
+    borderRadius: ms(16),
     overflow: "hidden",
     backgroundColor: "#F1F5F9",
-    marginBottom: 10,
+    marginBottom: vs(10),
   },
   image: {
     width: "100%",
@@ -53,28 +54,28 @@ const styles = StyleSheet.create({
   },
   bookmarkBtn: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    top: vs(10),
+    right: s(10),
+    width: s(32),
+    height: s(32),
+    borderRadius: s(16),
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: ms(3),
     elevation: 2,
   },
   title: {
-    fontSize: 14,
+    fontSize: ms(14),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#111827",
-    marginBottom: 2,
+    marginBottom: vs(2),
   },
   price: {
-    fontSize: 13,
+    fontSize: ms(13),
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: "#018ABD",
   },
