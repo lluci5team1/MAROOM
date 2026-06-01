@@ -1,10 +1,10 @@
 package com.maroom.maroom.controller;
 
 import com.maroom.maroom.dto.AuthResult;
+import com.maroom.maroom.dto.GoogleLoginRequest;
 import com.maroom.maroom.dto.LoginRequest;
 import com.maroom.maroom.dto.SignupRequest;
 import com.maroom.maroom.service.AuthService;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,18 +36,20 @@ public class AuthController {
         );
     }
 
+    @PostMapping("/google")
+    public AuthResult googleLogin(@RequestBody GoogleLoginRequest request) {
+        return authService.googleLogin(request.getIdToken());
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.badRequest().body("Invalid token");
         }
 
         String token = authHeader.substring(7);
-
         authService.logout(token);
 
         return ResponseEntity.ok().body("Logged out successfully");
     }
-    
 }
