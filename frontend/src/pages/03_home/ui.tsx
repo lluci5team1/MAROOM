@@ -72,7 +72,7 @@ export function HomePage() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Image source={icons.appLogo} style={styles.LOGO2} resizeMode="contain" />
+          <Image source={icons.LOGO2} style={styles.LOGO2} resizeMode="contain" />
           <Text style={styles.title}>MAROOM</Text>
         </View>
 
