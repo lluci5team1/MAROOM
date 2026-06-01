@@ -21,7 +21,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -31,7 +30,6 @@ public class RecommendationService {
 
     private static final Logger log = LoggerFactory.getLogger(RecommendationService.class);
     private static final int MAX_FEED_SIZE = 100;
-    private static final int MAX_QUERY_CANDIDATES = 500;
 
     private final JdbcTemplate jdbcTemplate;
     private final FurnitureItemRepository furnitureItemRepository;
@@ -70,11 +68,8 @@ public class RecommendationService {
         }
 
         try {
-            int candidateLimit = candidateLimit(size);
-            List<FurnitureItem> candidates;
-
             if (userId == null) {
-                candidates = jdbcTemplate.query("""
+                return jdbcTemplate.query("""
                                 select
                                     fi.id,
                                     fi.title,
@@ -91,49 +86,32 @@ public class RecommendationService {
                                 limit ?
                                 """,
                         furnitureItemRowMapper(),
-                        candidateLimit);
-            } else {
-                candidates = jdbcTemplate.query("""
-                                select
-                                    fi.id,
-                                    fi.title,
-                                    fi.category,
-                                    fi.brand,
-                                    fi.style,
-                                    fi.color,
-                                    fi.price,
-                                    fi.room_type,
-                                    fi.product_url,
-                                    fi.image_url
-                                from furniture_items fi
-                                where not exists (
-                                    select 1
-                                    from swipe_event se
-                                    where se.user_id = ?
-                                      and se.furniture_id = fi.id
-                                )
-                                  and not exists (
-                                    select 1
-                                    from saved_list sl
-                                    join saved_item si on si.saved_list_id = sl.id
-                                    where sl.user_id = ?
-                                      and si.furniture_id = fi.id
-                                )
-                                order by random()
-                                limit ?
-                                """,
-                        furnitureItemRowMapper(),
-                        userId,
-                        userId,
-                        candidateLimit);
+                        size);
             }
 
-            List<FurnitureItem> feed = deduplicateAndLimit(candidates, size);
-            if (feed.size() >= size) {
-                return feed;
-            }
-
-            return fillWithFallbackItems(userId, size, feed, false);
+            return jdbcTemplate.query("""
+                            select
+                                fi.id,
+                                fi.title,
+                                fi.category,
+                                fi.brand,
+                                fi.style,
+                                fi.color,
+                                fi.price,
+                                fi.room_type,
+                                fi.product_url,
+                                fi.image_url
+                            from furniture_items fi
+                            left join swipe_event se
+                              on se.user_id = ?
+                             and se.furniture_id = fi.id
+                            where se.id is null
+                            order by random()
+                            limit ?
+                            """,
+                    furnitureItemRowMapper(),
+                    userId,
+                    size);
         } catch (Exception e) {
             log.warn("Failed to build random feed for {}: {}", userId, e.getMessage());
             return fillWithFallbackItems(userId, size, List.of(), false);
@@ -146,10 +124,7 @@ public class RecommendationService {
             return List.of();
         }
 
-        List<FurnitureItem> rankedItems = deduplicateAndLimit(
-                findRankedByEmbedding(userId, candidateLimit(size)),
-                size
-        );
+        List<FurnitureItem> rankedItems = findRankedByEmbedding(userId, size);
         if (rankedItems.size() >= size) {
             return rankedItems;
         }
@@ -188,13 +163,6 @@ public class RecommendationService {
                               and ue.embedding_model = ?
                               and ue.embedding_dim = ?
                               and se.id is null
-                              and not exists (
-                                  select 1
-                                  from saved_list sl
-                                  join saved_item si on si.saved_list_id = sl.id
-                                  where sl.user_id = ue.user_id
-                                    and si.furniture_id = fi.id
-                              )
                             order by fe.combined_embedding <=> ue.embedding
                             limit ?
                             """,
@@ -230,16 +198,17 @@ public class RecommendationService {
             boolean usePreferenceSort
     ) {
         Set<UUID> usedIds = new LinkedHashSet<>();
-        Set<String> usedIdentityKeys = new LinkedHashSet<>();
         List<FurnitureItem> feed = new ArrayList<>();
 
         for (FurnitureItem item : rankedItems) {
-            addUniqueFurniture(feed, usedIds, usedIdentityKeys, item, size);
+            if (item.getId() != null && usedIds.add(item.getId())) {
+                feed.add(item);
+            }
         }
 
         Set<UUID> excludedIds = new HashSet<>(usedIds);
         if (userId != null) {
-            excludedIds.addAll(findExcludedFurnitureIds(userId));
+            excludedIds.addAll(swipeEventRepository.findFurnitureIdsByUserId(userId));
         }
 
         List<FurnitureItem> fallbackItems = new ArrayList<>(furnitureItemRepository.findAll());
@@ -269,7 +238,10 @@ public class RecommendationService {
         }
 
         for (FurnitureItem item : fallbackItems) {
-            addUniqueFurniture(feed, usedIds, usedIdentityKeys, item, size);
+            if (feed.size() >= size) {
+                break;
+            }
+            feed.add(item);
         }
 
         return feed;
@@ -375,118 +347,6 @@ public class RecommendationService {
             return 0;
         }
         return Math.min(requestedSize, MAX_FEED_SIZE);
-    }
-
-    private int candidateLimit(int size) {
-        return Math.min(MAX_QUERY_CANDIDATES, Math.max(size, size * 5));
-    }
-
-    private List<FurnitureItem> deduplicateAndLimit(List<FurnitureItem> items, int size) {
-        Set<UUID> usedIds = new LinkedHashSet<>();
-        Set<String> usedIdentityKeys = new LinkedHashSet<>();
-        List<FurnitureItem> feed = new ArrayList<>();
-
-        for (FurnitureItem item : items) {
-            addUniqueFurniture(feed, usedIds, usedIdentityKeys, item, size);
-        }
-
-        return feed;
-    }
-
-    private void addUniqueFurniture(
-            List<FurnitureItem> feed,
-            Set<UUID> usedIds,
-            Set<String> usedIdentityKeys,
-            FurnitureItem item,
-            int size
-    ) {
-        if (item == null || feed.size() >= size) {
-            return;
-        }
-
-        UUID id = item.getId();
-        if (id != null && usedIds.contains(id)) {
-            return;
-        }
-
-        List<String> identityKeys = identityKeys(item);
-        if (identityKeys.stream().anyMatch(usedIdentityKeys::contains)) {
-            return;
-        }
-
-        if (id != null) {
-            usedIds.add(id);
-        }
-        usedIdentityKeys.addAll(identityKeys);
-        feed.add(item);
-    }
-
-    private List<String> identityKeys(FurnitureItem item) {
-        List<String> keys = new ArrayList<>();
-        addIdentityKey(keys, "url", item.getProductUrl());
-        addIdentityKey(keys, "image", item.getImageUrl());
-
-        String title = normalizeIdentity(item.getTitle());
-        if (!title.isBlank()) {
-            keys.add("title:" + title + "|brand:" + normalizeIdentity(item.getBrand()));
-        }
-
-        return keys;
-    }
-
-    private void addIdentityKey(List<String> keys, String prefix, String value) {
-        String normalized = normalizeIdentity(value);
-        if (!normalized.isBlank()) {
-            keys.add(prefix + ":" + normalized);
-        }
-    }
-
-    private String normalizeIdentity(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        String normalized = value.toLowerCase(Locale.ROOT).trim();
-        int queryStart = normalized.indexOf('?');
-        if (queryStart >= 0) {
-            normalized = normalized.substring(0, queryStart);
-        }
-        int fragmentStart = normalized.indexOf('#');
-        if (fragmentStart >= 0) {
-            normalized = normalized.substring(0, fragmentStart);
-        }
-
-        return normalized
-                .replaceAll("[^a-z0-9]+", " ")
-                .trim()
-                .replaceAll("\\s+", " ");
-    }
-
-    private Set<UUID> findExcludedFurnitureIds(UUID userId) {
-        Set<UUID> excludedIds = new HashSet<>();
-
-        List<UUID> swipedIds = swipeEventRepository.findFurnitureIdsByUserId(userId);
-        if (swipedIds != null) {
-            excludedIds.addAll(swipedIds);
-        }
-
-        try {
-            List<UUID> savedIds = jdbcTemplate.queryForList("""
-                            select si.furniture_id
-                            from saved_item si
-                            join saved_list sl on sl.id = si.saved_list_id
-                            where sl.user_id = ?
-                            """,
-                    UUID.class,
-                    userId);
-            if (savedIds != null) {
-                excludedIds.addAll(savedIds);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to load saved furniture exclusions for {}: {}", userId, e.getMessage());
-        }
-
-        return excludedIds;
     }
 
     private RowMapper<FurnitureItem> furnitureItemRowMapper() {

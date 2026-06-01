@@ -40,12 +40,6 @@ public class SavedController {
 
     @PostMapping("/items")
     public ResponseEntity<SavedItem> addItem(@RequestBody SavedItem item) {
-        Optional<SavedItem> existing = savedItemRepository
-                .findFirstBySavedListIdAndFurnitureId(item.getSavedListId(), item.getFurnitureId());
-        if (existing.isPresent()) {
-            return ResponseEntity.ok(existing.get());
-        }
-
         return ResponseEntity.ok(savedItemRepository.save(item));
     }
 
