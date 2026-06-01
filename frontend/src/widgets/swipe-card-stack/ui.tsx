@@ -9,7 +9,7 @@ import { SwipeableCard } from "../../features/main-page/swipeable-card/swipeable
 import { ProductCardBack } from "../../shared/ui/ProductCardBack";
 import { RoundButton } from "../../shared/ui/likeButton";
 import { icons } from "../../shared/assets/icons";
-import { swipeProduct } from "../../entities/product/api";
+import { swipeProduct, undoSwipeProduct } from "../../entities/product/api";
 import { invalidateSavedCache } from "../../pages/04_saved/ui";
 
 type Props = {
@@ -37,7 +37,12 @@ export function SwipeCardDeck({ products, userId, onLoadMore, onAfterSwipe, goBa
     _cachedData.length > 0 ? _cachedData : [...products]
   );
   const [currentIndex, setCurrentIndex] = useState(_cachedIndex);
-  const animatedValues = useSharedValue(0);
+  // IMPORTANT: keep the shared value in sync with the restored currentIndex.
+  // If we leave this at 0 while currentIndex was restored to e.g. 5, every
+  // card's interpolated opacity extrapolates to a negative number → the deck
+  // renders as a white area until the user taps like/dislike (which tweens
+  // animatedValues up to currentIndex+1, fading the cards back in).
+  const animatedValues = useSharedValue(_cachedIndex);
   const [swipeActions, setSwipeActions] = useState<SwipeActions | null>(null);
   const [activePress, setActivePress] = useState<"like" | "dislike" | null>(null);
   const [exhausted, setExhausted] = useState(false);
@@ -52,6 +57,17 @@ export function SwipeCardDeck({ products, userId, onLoadMore, onAfterSwipe, goBa
   const MAX = 4;
   const LOAD_MORE_THRESHOLD = 8;
 
+  // Guarantee animatedValues is aligned with currentIndex on mount. Without
+  // this, restoring currentIndex from the module-level cache while leaving
+  // the freshly-created shared value at 0 makes every card's interpolated
+  // opacity extrapolate negative → blank/white deck until the user taps a
+  // button. We run this only on mount; in-flight swipes manage the value
+  // themselves.
+  useEffect(() => {
+    animatedValues.value = currentIndex;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Expose go-back via ref so HomePage can call it
   useEffect(() => {
     if (!goBackRef) return;
@@ -62,12 +78,25 @@ export function SwipeCardDeck({ products, userId, onLoadMore, onAfterSwipe, goBa
       if (prevItem?.id) {
         seenIds.current.delete(prevItem.id);
         _cachedSeenIds = new Set(seenIds.current);
+        // Tell the backend to forget the prior swipe for this item.
+        // Without this the next swipe on this card returns 409 from
+        // /swipe (server-side dedup by userId+furnitureId), and a prior
+        // RIGHT swipe leaves the item orphaned in the Liked list.
+        if (userId) {
+          undoSwipeProduct(userId, prevItem.id)
+            .then(() => {
+              // The Liked list may have changed (if the prior swipe was
+              // RIGHT, it's been removed). Invalidate so /saved refetches.
+              invalidateSavedCache();
+            })
+            .catch(() => {});
+        }
       }
       setCurrentIndex(prevIndex);
       _cachedIndex = prevIndex;
       animatedValues.value = prevIndex;
     };
-  }, [currentIndex, data, goBackRef]);
+  }, [currentIndex, data, goBackRef, userId]);
 
   useEffect(() => {
     if (!initialized.current && products.length > 0) {

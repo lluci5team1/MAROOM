@@ -76,6 +76,18 @@ export async function swipeProduct(
   await apiClient.post("/swipe", { userId, furnitureId, direction });
 }
 
+/**
+ * Undo the most recent swipe a user made on the given item. If the prior
+ * swipe was RIGHT, the backend also removes the item from the user's Liked
+ * list. Safe to call when no prior swipe exists (returns ok=false).
+ */
+export async function undoSwipeProduct(
+  userId: string,
+  furnitureId: string,
+): Promise<void> {
+  await apiClient.delete(`/swipe/${userId}/${furnitureId}`);
+}
+
 export async function fetchSavedProducts(userId: string): Promise<Product[]> {
   const res = await apiClient.get(`/saved/${userId}`);
   return res.data.map((item: any) => ({

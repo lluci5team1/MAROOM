@@ -12,11 +12,13 @@ import com.maroom.maroom.service.RecommendationService;
 import com.maroom.maroom.service.UserEmbeddingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -94,6 +96,53 @@ public class SwipeController {
         res.put("savedToLiked", savedToLiked);
         res.put("userEmbedding", userEmbeddingService.recomputeUserEmbedding(req.userId));
 
+        return ResponseEntity.ok(res);
+    }
+
+    /**
+     * Undo the most recent swipe a user made on a given furniture item.
+     * Removes the SwipeEvent record so the user can swipe the item again,
+     * and if the prior swipe was RIGHT, also removes the item from the
+     * user's Liked list. Idempotent: returns ok=false with a message if
+     * no prior swipe exists.
+     */
+    @DeleteMapping("/{userId}/{furnitureId}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> undoSwipe(@PathVariable UUID userId,
+                                                          @PathVariable UUID furnitureId) {
+        Optional<SwipeEvent> existing =
+                swipeEventRepository.findFirstByUserIdAndFurnitureIdOrderByCreatedAtDesc(userId, furnitureId);
+
+        if (existing.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "ok", false,
+                    "message", "No prior swipe to undo"
+            ));
+        }
+
+        SwipeEvent event = existing.get();
+        SwipeDirection previousDirection = event.getDirection();
+        boolean removedFromLiked = false;
+
+        if (previousDirection == SwipeDirection.RIGHT) {
+            Optional<SavedList> likedList = savedListRepository.findFirstByUserIdAndName(userId, "Liked");
+            if (likedList.isPresent()) {
+                Optional<SavedItem> savedItem = savedItemRepository
+                        .findFirstBySavedListIdAndFurnitureId(likedList.get().getId(), furnitureId);
+                if (savedItem.isPresent()) {
+                    savedItemRepository.delete(savedItem.get());
+                    removedFromLiked = true;
+                }
+            }
+        }
+
+        swipeEventRepository.delete(event);
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("ok", true);
+        res.put("undoneDirection", previousDirection);
+        res.put("removedFromLiked", removedFromLiked);
+        res.put("userEmbedding", userEmbeddingService.recomputeUserEmbedding(userId));
         return ResponseEntity.ok(res);
     }
 
