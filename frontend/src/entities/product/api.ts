@@ -22,6 +22,7 @@ type FurnitureSearchParams = {
   brand?: string;
   category?: string[];
   roomType?: string[];
+  style?: string[];
   color?: string[];
   minPrice?: number;
   maxPrice?: number;
@@ -39,6 +40,7 @@ export async function searchFurnitureItems(
   if (params.brand?.trim()) query.append("brand", params.brand.trim());
   params.category?.forEach((value) => query.append("category", value));
   params.roomType?.forEach((value) => query.append("roomType", value));
+  params.style?.forEach((value) => query.append("style", value));
   params.color?.forEach((value) => query.append("color", value));
   if (params.minPrice != null) query.append("minPrice", String(params.minPrice));
   if (params.maxPrice != null) query.append("maxPrice", String(params.maxPrice));

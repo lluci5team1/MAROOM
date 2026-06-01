@@ -41,7 +41,15 @@ const COL3_W = Math.floor((USABLE - GAP * 2) / 3);
 const ROW3_H = COL3_W;
 
 // ─── Module-level cache (survives tab switches) ───────────────────────────────
+// We cache the full "current view" — products plus the inputs that produced
+// them — so a round-trip through the detail page lands the user back on the
+// exact same filtered/searched grid instead of resetting to defaults.
 let _cachedProducts: Product[] = [];
+let _cachedQuery = "";
+let _cachedFilter: FilterState = { ...DEFAULT_FILTER };
+let _cachedIsDefault = true;
+let _cachedOffset = 0;
+let _cachedHasMore = true;
 // Scroll position survives tab switches and round-trips to the detail page,
 // so returning from a product detail lands the user back where they left off.
 let _savedScrollY = 0;
@@ -162,8 +170,8 @@ function BlockFeaturedRight({ items, router }: { items: Product[]; router: any }
 export function ExplorePage() {
   const router = useRouter();
   const [filterOpen, setFilterOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const [query, setQuery] = useState(_cachedQuery);
+  const [activeFilter, setActiveFilter] = useState<FilterState>(_cachedFilter);
   const [products, setProducts] = useState<Product[]>(_cachedProducts);
   const [loading, setLoading] = useState(_cachedProducts.length === 0);
   const [refreshing, setRefreshing] = useState(false);
@@ -177,20 +185,19 @@ export function ExplorePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
-  const offsetRef = useRef<number>(_cachedProducts.length);
-  const isDefaultRef = useRef(true);
+  const offsetRef = useRef<number>(_cachedOffset || _cachedProducts.length);
+  const isDefaultRef = useRef(_cachedIsDefault);
   // Tracks the params that produced the currently-displayed list so paginated
   // load-more requests can reuse them (and so a stale page from a previous
   // search/filter never gets appended to a newer one).
   const lastSearchRef = useRef<{ q: string; filter: FilterState }>({
-    q: "",
-    filter: DEFAULT_FILTER,
+    q: _cachedQuery,
+    filter: _cachedFilter,
   });
-  const hasMoreRef = useRef(true);
+  const hasMoreRef = useRef(_cachedHasMore);
   // Monotonic id used to invalidate in-flight requests when the user kicks
   // off a newer search/filter/refresh while previous results are still loading.
   const requestIdRef = useRef(0);
-  const blockTypesRef = useRef<number[]>([]);
   const scrollRef = useRef<ScrollView>(null);
   // We only start persisting scrollY once we've had a chance to restore it,
   // otherwise the initial Y=0 from mount would clobber the saved value.
@@ -200,6 +207,7 @@ export function ExplorePage() {
     q: searchText,
     brand: filter.brand,
     category: filter.category,
+    style: filter.style,
     color: expandColorNames(filter.color),
     minPrice: filter.priceRange.min > PRICE_MIN ? filter.priceRange.min : undefined,
     maxPrice: filter.priceRange.max < PRICE_MAX ? filter.priceRange.max : undefined,
@@ -207,9 +215,14 @@ export function ExplorePage() {
   });
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
+    // `sortBy === "recommended"` is the backend's default (score-based), so we
+    // treat it the same as no sortBy. Any other value (price asc/desc, etc.)
+    // is a real sort that must go through /search instead of /recommendations.
+    const sortByActive = !!filter.sortBy && filter.sortBy !== "recommended";
     const isDefault = !searchText && !filter.brand && filter.category.length === 0
       && filter.color.length === 0 && filter.style.length === 0
-      && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX;
+      && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX
+      && !sortByActive;
 
     isDefaultRef.current = isDefault;
     lastSearchRef.current = { q: searchText, filter };
@@ -237,20 +250,12 @@ export function ExplorePage() {
       if (requestId !== requestIdRef.current) return;
 
       // Only fall back to mock when no filter is active and backend returned nothing
-      const base = (!isDefault || data.length > 0)
+      const result = (!isDefault || data.length > 0)
         ? data
         : applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
 
-      // Style has no backend support — filter client-side on the results
-      const result = filter.style.length === 0 ? base : base.filter((item) => {
-        const s = (item.style ?? "").toLowerCase();
-        return filter.style.some((f) => s.includes(f.toLowerCase()) || f.toLowerCase().includes(s));
-      });
-
       offsetRef.current = result.length;
       hasMoreRef.current = data.length >= PAGE_SIZE;
-      // Reset the block-layout cycle so newly-loaded results start fresh.
-      blockTypesRef.current = [];
       // Content changed (search/filter/initial load) — start from the top
       // and forget any previously saved scroll position.
       _savedScrollY = 0;
@@ -258,7 +263,14 @@ export function ExplorePage() {
       scrollRef.current?.scrollTo({ y: 0, animated: false });
       setProducts(result);
       setVisibleCount(result.length);
-      if (isDefault) _cachedProducts = result;
+      // Cache the full view so a round-trip to the detail page restores the
+      // same filtered/searched grid instead of resetting to defaults.
+      _cachedProducts = result;
+      _cachedQuery = searchText;
+      _cachedFilter = filter;
+      _cachedIsDefault = isDefault;
+      _cachedOffset = offsetRef.current;
+      _cachedHasMore = hasMoreRef.current;
     } catch {
       if (requestId !== requestIdRef.current) return;
       // On error only fall back to mock when no filter is active
@@ -269,12 +281,23 @@ export function ExplorePage() {
         setProducts(fallback);
         setVisibleCount(fallback.length);
         _cachedProducts = fallback;
+        _cachedQuery = searchText;
+        _cachedFilter = filter;
+        _cachedIsDefault = true;
+        _cachedOffset = fallback.length;
+        _cachedHasMore = false;
       } else {
         // Search/filter failed — clear results so the empty-state UI shows.
         offsetRef.current = 0;
         hasMoreRef.current = false;
         setProducts([]);
         setVisibleCount(0);
+        _cachedProducts = [];
+        _cachedQuery = searchText;
+        _cachedFilter = filter;
+        _cachedIsDefault = false;
+        _cachedOffset = 0;
+        _cachedHasMore = false;
       }
     } finally {
       if (requestId === requestIdRef.current) {
@@ -296,6 +319,11 @@ export function ExplorePage() {
 
   const handleRefresh = useCallback(() => {
     _cachedProducts = [];
+    _cachedQuery = "";
+    _cachedFilter = { ...DEFAULT_FILTER };
+    _cachedIsDefault = true;
+    _cachedOffset = 0;
+    _cachedHasMore = true;
     _savedScrollY = 0;
     offsetRef.current = 0;
     hasMoreRef.current = true;
@@ -337,6 +365,7 @@ export function ExplorePage() {
       .then((more: Product[]) => {
         if (requestId !== requestIdRef.current) return;
         if (more.length < PAGE_SIZE) hasMoreRef.current = false;
+        _cachedHasMore = hasMoreRef.current;
         if (more.length === 0) return;
 
         // Defensive client-side dedupe — the server already paginates with
@@ -347,7 +376,10 @@ export function ExplorePage() {
           if (unique.length === 0) return prev;
           offsetRef.current = startOffset + more.length;
           const updated = [...prev, ...unique];
-          if (wasDefault) _cachedProducts = updated;
+          // Always cache so detail-page round-trips restore the same scroll
+          // position and the same set of loaded pages.
+          _cachedProducts = updated;
+          _cachedOffset = offsetRef.current;
           setVisibleCount(updated.length);
           return updated;
         });
@@ -363,21 +395,17 @@ export function ExplorePage() {
 
   const visibleProducts = products.slice(0, visibleCount);
 
-  const { blocks, blockTypes } = useMemo(() => {
-    const blocks: Product[][] = [];
+  const blocks = useMemo(() => {
+    const out: Product[][] = [];
     for (let i = 0; i < visibleProducts.length; i += 3) {
-      blocks.push(visibleProducts.slice(i, i + 3));
+      out.push(visibleProducts.slice(i, i + 3));
     }
-    // Assign random types only to newly added blocks; existing ones keep their shape
-    if (blocks.length > blockTypesRef.current.length) {
-      for (let i = blockTypesRef.current.length; i < blocks.length; i++) {
-        blockTypesRef.current.push(Math.floor(Math.random() * 3));
-      }
-    } else {
-      blockTypesRef.current = blockTypesRef.current.slice(0, blocks.length);
-    }
-    return { blocks, blockTypes: blockTypesRef.current };
-  }, [visibleProducts.length]);
+    return out;
+    // Depend on the products array reference (not just .length) so a fresh
+    // search/filter result of identical length still triggers a rebuild —
+    // otherwise the previously-cached blocks keep references to the old items
+    // and the grid renders nothing for the newly fetched products.
+  }, [products, visibleCount]);
 
   if (loading && products.length === 0) return <LoadingScreen />;
 
@@ -400,7 +428,7 @@ export function ExplorePage() {
 
       {/* Grid */}
       {searching ? (
-        <ThreeDotsLoader />
+        <LoadingScreen />
       ) : products.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="search" size={64} color="#018ABD" />
@@ -434,7 +462,9 @@ export function ExplorePage() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {blocks.map((block, i) => {
-            const type = blockTypes[i];
+            // Deterministic shape per row position so item layout is stable
+            // across re-entries, refreshes, and infinite-scroll appends.
+            const type = i % 3;
             if (type === 0) return <BlockFeaturedLeft key={i} items={block} router={router} />;
             if (type === 1) return <BlockRow3 key={i} items={block} router={router} />;
             return <BlockFeaturedRight key={i} items={block} router={router} />;
