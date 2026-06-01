@@ -37,9 +37,18 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName: string;
+  profilePictureUrl?: string;
 }
 
 export async function fetchUser(userId: string): Promise<UserProfile> {
   const res = await apiClient.get(`/users/${userId}`);
+  return res.data;
+}
+
+export async function updateUserProfile(
+  userId: string,
+  data: { displayName?: string; profilePictureUrl?: string }
+): Promise<UserProfile> {
+  const res = await apiClient.patch(`/users/${userId}`, data);
   return res.data;
 }

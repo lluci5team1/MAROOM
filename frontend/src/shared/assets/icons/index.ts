@@ -16,4 +16,5 @@ export const icons = {
   maroon_onboarding: require("./maroon_onboarding.png"),
   LOGO2: require("./MAROOM_LOGO2.png"),
   new_spinner: require("./new_spinner.png"),
+  appLogo: require("../app-logo.png"),
 };

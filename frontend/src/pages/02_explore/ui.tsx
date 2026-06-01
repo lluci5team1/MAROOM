@@ -168,8 +168,9 @@ export function ExplorePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
-  const seenIdsRef = useRef<Set<string>>(new Set(_cachedProducts.map((p) => p.id)));
+  const offsetRef = useRef<number>(_cachedProducts.length);
   const isDefaultRef = useRef(true);
+  const blockTypesRef = useRef<number[]>([]);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
     const isDefault = !searchText && !filter.brand && filter.category.length === 0
@@ -182,7 +183,7 @@ export function ExplorePage() {
       let data: Product[];
 
       if (isDefault && userIdRef.current) {
-        data = await fetchRecommendations(userIdRef.current, 60);
+        data = await fetchRecommendations(userIdRef.current, PAGE_SIZE, 0);
       } else {
         data = await searchFurnitureItems({
           q: searchText,
@@ -206,7 +207,7 @@ export function ExplorePage() {
         return filter.style.some((f) => s.includes(f.toLowerCase()) || f.toLowerCase().includes(s));
       });
 
-      seenIdsRef.current = new Set(result.map((p) => p.id));
+      offsetRef.current = isDefault ? result.length : 0;
       setProducts(result);
       setVisibleCount(result.length);
       if (isDefault) _cachedProducts = result;
@@ -214,6 +215,7 @@ export function ExplorePage() {
       // On error only fall back to mock when no filter is active
       if (isDefault) {
         const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
+        offsetRef.current = 0;
         setProducts(fallback);
         _cachedProducts = fallback;
       }
@@ -224,16 +226,17 @@ export function ExplorePage() {
   }, []);
 
   useEffect(() => {
-    if (_cachedProducts.length > 0) return;
     getUserId()
       .then((id) => { userIdRef.current = id; })
       .catch(() => {})
-      .finally(() => loadProducts("", DEFAULT_FILTER));
+      .finally(() => {
+        if (_cachedProducts.length === 0) loadProducts("", DEFAULT_FILTER);
+      });
   }, []);
 
   const handleRefresh = useCallback(() => {
     _cachedProducts = [];
-    seenIdsRef.current = new Set();
+    offsetRef.current = 0;
     setVisibleCount(PAGE_SIZE);
     setRefreshing(true);
     loadProducts("", DEFAULT_FILTER);
@@ -248,18 +251,16 @@ export function ExplorePage() {
     if (isDefaultRef.current && userIdRef.current) {
       loadingMoreRef.current = true;
       setLoadingMore(true);
-      fetchRecommendations(userIdRef.current, 60)
+      fetchRecommendations(userIdRef.current, PAGE_SIZE, offsetRef.current)
         .then((more: Product[]) => {
-          const unique = more.filter((p: Product) => !seenIdsRef.current.has(p.id));
-          unique.forEach((p: Product) => seenIdsRef.current.add(p.id));
-          if (unique.length > 0) {
-            setProducts((prev) => {
-              const updated = [...prev, ...unique];
-              _cachedProducts = updated;
-              setVisibleCount(updated.length);
-              return updated;
-            });
-          }
+          if (more.length === 0) return;
+          offsetRef.current += more.length;
+          setProducts((prev) => {
+            const updated = [...prev, ...more];
+            _cachedProducts = updated;
+            return updated;
+          });
+          setVisibleCount((prev) => prev + more.length);
         })
         .catch(() => {})
         .finally(() => {
@@ -267,17 +268,8 @@ export function ExplorePage() {
           loadingMoreRef.current = false;
         });
     } else {
-      setVisibleCount((prev) => {
-        if (prev >= products.length) return prev;
-        loadingMoreRef.current = true;
-        setLoadingMore(true);
-        setTimeout(() => {
-          setVisibleCount((c) => Math.min(c + PAGE_SIZE, products.length));
-          setLoadingMore(false);
-          loadingMoreRef.current = false;
-        }, 500);
-        return prev;
-      });
+      // Client-side pagination for search/filter results (all loaded at once)
+      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, products.length));
     }
   }, [products.length]);
 
@@ -288,9 +280,16 @@ export function ExplorePage() {
     for (let i = 0; i < visibleProducts.length; i += 3) {
       blocks.push(visibleProducts.slice(i, i + 3));
     }
-    const blockTypes = blocks.map(() => Math.floor(Math.random() * 3));
-    return { blocks, blockTypes };
-  }, [visibleProducts]);
+    // Assign random types only to newly added blocks; existing ones keep their shape
+    if (blocks.length > blockTypesRef.current.length) {
+      for (let i = blockTypesRef.current.length; i < blocks.length; i++) {
+        blockTypesRef.current.push(Math.floor(Math.random() * 3));
+      }
+    } else {
+      blockTypesRef.current = blockTypesRef.current.slice(0, blocks.length);
+    }
+    return { blocks, blockTypes: blockTypesRef.current };
+  }, [visibleProducts.length]);
 
   if (loading && products.length === 0) return <LoadingScreen />;
 

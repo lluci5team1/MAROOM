@@ -32,6 +32,9 @@ public class User {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String profilePictureUrl;
+
     protected User() {}
 
     public User(String email, String displayName, String authProvider, String passwordHash) {
@@ -52,4 +55,8 @@ public class User {
     public String getAuthProvider() { return authProvider; }
     public String getPasswordHash() { return passwordHash; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getProfilePictureUrl() { return profilePictureUrl; }
+
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
 }

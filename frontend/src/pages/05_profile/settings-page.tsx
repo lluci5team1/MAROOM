@@ -32,18 +32,6 @@ export function SettingsPage() {
           showChevron
           onPress={() => {}}
         />
-        <SettingsCard
-          icon="bell"
-          label="Push Notifications"
-          right={
-            <Switch
-              value={pushEnabled}
-              onValueChange={setPushEnabled}
-              trackColor={{ false: "#D1D9E0", true: "#1399E5" }}
-              thumbColor="#FFFFFF"
-            />
-          }
-        />
 
         <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PREFERENCES</Text>
 

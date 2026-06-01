@@ -19,6 +19,17 @@ public class UserController {
     }
 
     public record CreateUserRequest(String email, String displayName, String authProvider) {}
+    public record UpdateUserRequest(String displayName, String profilePictureUrl) {}
+    public record UserResponse(String id, String email, String displayName, String profilePictureUrl) {}
+
+    private UserResponse toResponse(User user) {
+        return new UserResponse(
+                user.getId().toString(),
+                user.getEmail(),
+                user.getDisplayName(),
+                user.getProfilePictureUrl()
+        );
+    }
 
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest req) {
@@ -55,7 +66,22 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getUser(@PathVariable UUID id) {
         return userRepository.findById(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(toResponse(user)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found")));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest req) {
+        return userRepository.findById(id)
+                .map(user -> {
+                    if (req.displayName() != null && !req.displayName().isBlank()) {
+                        user.setDisplayName(req.displayName().trim());
+                    }
+                    if (req.profilePictureUrl() != null) {
+                        user.setProfilePictureUrl(req.profilePictureUrl());
+                    }
+                    return ResponseEntity.ok(toResponse(userRepository.save(user)));
+                })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found")));
     }
 }

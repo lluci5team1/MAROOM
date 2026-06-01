@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet, Pressable, Dimensions } from "react-native";
+import { View, Text, Image, StyleSheet, Pressable, Dimensions, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Product } from "../../../entities/product/type";
 import { s, vs, ms } from "../../utils/scale";
@@ -11,9 +11,10 @@ export const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - GAP) / 2);
 type Props = {
   product: Product;
   onPress?: () => void;
+  onUnsave?: () => void;
 };
 
-export function SavedProductCard({ product, onPress }: Props) {
+export function SavedProductCard({ product, onPress, onUnsave }: Props) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrapper}>
@@ -24,9 +25,22 @@ export function SavedProductCard({ product, onPress }: Props) {
             resizeMode="cover"
           />
         )}
-        <View style={styles.bookmarkBtn}>
+        <Pressable
+          style={styles.bookmarkBtn}
+          hitSlop={8}
+          onPress={() =>
+            Alert.alert(
+              "Remove Item",
+              "Are you sure you want to remove this from your saved items?",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Remove", style: "destructive", onPress: onUnsave },
+              ]
+            )
+          }
+        >
           <Ionicons name="bookmark" size={ms(16)} color="#018ABD" />
-        </View>
+        </Pressable>
       </View>
       <Text style={styles.title} numberOfLines={2}>
         {product.title}

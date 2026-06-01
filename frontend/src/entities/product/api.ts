@@ -12,8 +12,8 @@ export async function fetchFeed(userId: string, size = 10): Promise<Product[]> {
   return res.data;
 }
 
-export async function fetchRecommendations(userId: string, size = 60): Promise<Product[]> {
-  const res = await apiClient.get(`/recommendations/${userId}?size=${size}`);
+export async function fetchRecommendations(userId: string, size = 60, offset = 0): Promise<Product[]> {
+  const res = await apiClient.get(`/recommendations/${userId}?size=${size}&offset=${offset}`);
   return res.data;
 }
 

@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 
 import { Product } from "../../entities/product/type";
-import { fetchSavedProducts } from "../../entities/product/api";
+import { fetchSavedProducts, unsaveProductForUser } from "../../entities/product/api";
 import { getUserId } from "../../shared/api/token";
 import { s, vs, ms } from "../../shared/utils/scale";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
@@ -31,12 +31,14 @@ export function SavedPage() {
   const [loading, setLoading] = useState(_cachedSaved.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [curCategory, setCurCategory] = useState("All Items");
+  const [userId, setUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const userId = await getUserId();
-      if (userId) {
-        const data = await fetchSavedProducts(userId);
+      const id = await getUserId();
+      setUserId(id);
+      if (id) {
+        const data = await fetchSavedProducts(id);
         setProducts(data);
         _cachedSaved = data;
       } else {
@@ -51,6 +53,26 @@ export function SavedPage() {
       setRefreshing(false);
     }
   }, []);
+
+  const handleUnsave = useCallback(async (product: Product) => {
+    if (!userId) return;
+    // Optimistically remove from UI
+    setProducts((prev) => {
+      const updated = prev.filter((p) => p.id !== product.id);
+      _cachedSaved = updated;
+      return updated;
+    });
+    try {
+      await unsaveProductForUser(userId, product.id);
+    } catch {
+      // Revert on failure
+      setProducts((prev) => {
+        const reverted = [...prev, product];
+        _cachedSaved = reverted;
+        return reverted;
+      });
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (_cachedSaved.length === 0) load();
@@ -107,6 +129,7 @@ export function SavedPage() {
               onPress={() =>
                 router.push({ pathname: "/(main)/[id]", params: { id: item.id, data: JSON.stringify(item), initialSaved: "true" } })
               }
+              onUnsave={() => handleUnsave(item)}
             />
           ) : (
             <View style={{ width: CARD_W }} />

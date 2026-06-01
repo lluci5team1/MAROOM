@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -29,7 +30,18 @@ import java.util.UUID;
 public class RecommendationService {
 
     private static final Logger log = LoggerFactory.getLogger(RecommendationService.class);
-    private static final int MAX_FEED_SIZE = 100;
+    private static final int PAGE_SIZE_MAX = 60;
+
+    // Maps the color palette names stored in preferences to the actual color
+    // keywords found in furniture_items.color so scoring works correctly.
+    private static final Map<String, List<String>> COLOR_PALETTE_KEYWORDS = Map.of(
+        "WARM NEUTRAL",  List.of("beige","cream","sand","tan","ivory","linen","nude","warm"),
+        "COOL NEUTRAL",  List.of("slate","gray","grey","ash","silver","mist","stone","fog"),
+        "VIBRANT",       List.of("blue","cyan","red","yellow","orange","purple","teal","green","lime"),
+        "EARTHY TONES",  List.of("sage","olive","terracotta","brown","khaki","rust","earth","clay"),
+        "BLACK WHITE",   List.of("black","white","charcoal","onyx","ebony","chalk","ivory"),
+        "PASTEL",        List.of("pink","lavender","mint","blush","peach","lilac","rose","soft")
+    );
 
     private final JdbcTemplate jdbcTemplate;
     private final FurnitureItemRepository furnitureItemRepository;
@@ -114,25 +126,26 @@ public class RecommendationService {
                     size);
         } catch (Exception e) {
             log.warn("Failed to build random feed for {}: {}", userId, e.getMessage());
-            return fillWithFallbackItems(userId, size, List.of(), false);
+            return fillWithFallbackItems(userId, size, 0, List.of(), false);
         }
     }
 
-    public List<FurnitureItem> getRecommendationsForUser(UUID userId, int requestedSize) {
+    public List<FurnitureItem> getRecommendationsForUser(UUID userId, int requestedSize, int offset) {
         int size = normalizeSize(requestedSize);
+        int safeOffset = Math.max(offset, 0);
         if (size == 0) {
             return List.of();
         }
 
-        List<FurnitureItem> rankedItems = findRankedByEmbedding(userId, size);
+        List<FurnitureItem> rankedItems = findRankedByEmbedding(userId, size, safeOffset);
         if (rankedItems.size() >= size) {
             return rankedItems;
         }
 
-        return fillWithFallbackItems(userId, size, rankedItems, true);
+        return fillWithFallbackItems(userId, size, safeOffset, rankedItems, true);
     }
 
-    private List<FurnitureItem> findRankedByEmbedding(UUID userId, int size) {
+    private List<FurnitureItem> findRankedByEmbedding(UUID userId, int size, int offset) {
         if (userId == null || !embeddingTablesExist()) {
             return List.of();
         }
@@ -172,12 +185,14 @@ public class RecommendationService {
                               )
                             order by fe.combined_embedding <=> ue.embedding
                             limit ?
+                            offset ?
                             """,
                     furnitureItemRowMapper(),
                     userId,
                     model,
                     outputDimension,
-                    size);
+                    size,
+                    offset);
         } catch (Exception e) {
             log.warn("Failed to build embedding-ranked feed for {}: {}", userId, e.getMessage());
             return List.of();
@@ -201,6 +216,7 @@ public class RecommendationService {
     private List<FurnitureItem> fillWithFallbackItems(
             UUID userId,
             int size,
+            int offset,
             List<FurnitureItem> rankedItems,
             boolean usePreferenceSort
     ) {
@@ -245,10 +261,16 @@ public class RecommendationService {
             Collections.shuffle(fallbackItems);
         }
 
-        for (FurnitureItem item : fallbackItems) {
-            if (feed.size() >= size) {
-                break;
-            }
+        // Skip fallback items that were already returned in earlier pages.
+        // Since embedding filled `rankedItems.size()` slots at this offset,
+        // fallback items in previous pages ≈ offset - rankedItems.size().
+        int fallbackStart = Math.max(0, offset - rankedItems.size());
+        int startIdx = Math.min(fallbackStart, fallbackItems.size());
+
+        for (int i = startIdx; i < fallbackItems.size(); i++) {
+            if (feed.size() >= size) break;
+            FurnitureItem item = fallbackItems.get(i);
+            if (item.getId() == null || usedIds.contains(item.getId())) continue;
             feed.add(item);
         }
 
@@ -267,7 +289,7 @@ public class RecommendationService {
             score += 5;
         }
 
-        if (matchesAny(item.getColor(), preferredColors)) {
+        if (matchesColorPalettes(item.getColor(), preferredColors)) {
             score += 3;
         }
 
@@ -298,6 +320,17 @@ public class RecommendationService {
         }
 
         return true;
+    }
+
+    private boolean matchesColorPalettes(String itemColor, List<String> palettes) {
+        if (itemColor == null || palettes == null || palettes.isEmpty()) return false;
+        String color = itemColor.toLowerCase();
+        for (String palette : palettes) {
+            String key = normalize(palette); // e.g. "WARM NEUTRAL"
+            List<String> keywords = COLOR_PALETTE_KEYWORDS.get(key);
+            if (keywords != null && keywords.stream().anyMatch(color::contains)) return true;
+        }
+        return false;
     }
 
     private boolean matchesAny(String itemValue, List<String> preferredValues) {
@@ -354,7 +387,7 @@ public class RecommendationService {
         if (requestedSize <= 0) {
             return 0;
         }
-        return Math.min(requestedSize, MAX_FEED_SIZE);
+        return Math.min(requestedSize, PAGE_SIZE_MAX);
     }
 
     private List<UUID> findSavedFurnitureIds(UUID userId) {

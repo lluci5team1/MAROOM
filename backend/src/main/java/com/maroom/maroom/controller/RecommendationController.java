@@ -22,10 +22,11 @@ public class RecommendationController {
     @GetMapping("/{userId}")
     public ResponseEntity<List<FurnitureItem>> getRecommendations(
             @PathVariable UUID userId,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") int offset
     ) {
         List<FurnitureItem> recommendations =
-                recommendationService.getRecommendationsForUser(userId, size);
+                recommendationService.getRecommendationsForUser(userId, size, offset);
 
         return ResponseEntity.ok(recommendations);
     }

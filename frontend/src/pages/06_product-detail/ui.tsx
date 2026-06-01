@@ -76,11 +76,20 @@ export function ProductDetailPage() {
     async function load() {
       if (!id) { setLoading(false); return; }
 
-      // If product data was passed with known saved status, no fetch needed
+      // Product data was pre-passed — still need userId and saved state
       if (data) {
+        const currentUserId = await getUserId();
+        if (!mounted) return;
+        setUserId(currentUserId ?? null);
         if (initialSaved !== undefined) {
-          const currentUserId = await getUserId();
-          if (mounted) setUserId(currentUserId ?? null);
+          // saved state was explicitly provided (e.g. from saved page)
+          setIsSaved(initialSaved === "true");
+        } else if (currentUserId) {
+          // coming from explore — check actual saved state
+          try {
+            const savedItems = await fetchSavedProducts(currentUserId);
+            if (mounted) setIsSaved(savedItems.some((item) => item.id === String(id)));
+          } catch {}
         }
         return;
       }
@@ -206,12 +215,12 @@ export function ProductDetailPage() {
           <View style={styles.dot} />
         </View>
 
-        {/* Heart button bottom-right */}
+        {/* Bookmark button bottom-right */}
         <Pressable style={styles.heartButton} onPress={handleToggleSave} hitSlop={8}>
           <Ionicons
-            name={isSaved ? "heart" : "heart-outline"}
+            name={isSaved ? "bookmark" : "bookmark-outline"}
             size={20}
-            color={isSaved ? "#E53935" : "#018ABD"}
+            color="#018ABD"
           />
         </Pressable>
       </View>
@@ -307,14 +316,19 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: "#fff" },
   heartButton: {
     position: "absolute",
-    bottom: vs(14),
+    bottom: vs(26),
     right: s(14),
     width: s(38),
     height: s(38),
     borderRadius: s(19),
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: ms(3),
+    elevation: 2,
   },
 
   titleBlock: {

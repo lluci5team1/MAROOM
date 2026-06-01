@@ -9,14 +9,20 @@ import { SwipeableCard } from "../../features/main-page/swipeable-card/swipeable
 import { ProductCardBack } from "../../shared/ui/ProductCardBack";
 import { RoundButton } from "../../shared/ui/likeButton";
 import { icons } from "../../shared/assets/icons";
-import { saveProductForUser, swipeProduct } from "../../entities/product/api";
+import { saveProductForUser, swipeProduct, fetchSavedProducts } from "../../entities/product/api";
 import { _cachedSaved, invalidateSavedCache } from "../../pages/04_saved/ui";
 
 type Props = {
   products: Product[];
   userId: string | null;
   onLoadMore?: () => Promise<Product[]>;
+  onAfterSwipe?: () => void;
+  goBackRef?: { current: () => void };
 };
+
+let _cachedData: Product[] = [];
+let _cachedIndex: number = 0;
+let _cachedSeenIds: Set<string> = new Set();
 
 type SwipeActions = {
   left?: () => void;
@@ -24,15 +30,19 @@ type SwipeActions = {
   translateX: SharedValue<number>;
 };
 
-export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
-  const [data, setData] = useState([...products]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+export function SwipeCardDeck({ products, userId, onLoadMore, onAfterSwipe, goBackRef }: Props) {
+  const [data, setData] = useState<Product[]>(
+    _cachedData.length > 0 ? _cachedData : [...products]
+  );
+  const [currentIndex, setCurrentIndex] = useState(_cachedIndex);
   const animatedValues = useSharedValue(0);
   const [swipeActions, setSwipeActions] = useState<SwipeActions | null>(null);
   const [activePress, setActivePress] = useState<"like" | "dislike" | null>(null);
   const loadingMore = useRef(false);
-  const initialized = useRef(false);
-  const seenIds = useRef(new Set<string>());
+  const initialized = useRef(_cachedData.length > 0);
+  const seenIds = useRef<Set<string>>(
+    _cachedSeenIds.size > 0 ? new Set(_cachedSeenIds) : new Set(products.map((p) => p.id))
+  );
   const savedIds = useRef(new Set<string>(_cachedSaved.map((p) => p.id)));
   const ACTIVE_PRESS_MS = 420;
   const SWIPE_TRIGGER_DELAY_MS = 130;
@@ -40,11 +50,42 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
   const MAX = 4;
   const LOAD_MORE_THRESHOLD = 8;
 
+  // Expose go-back via ref so HomePage can call it
+  useEffect(() => {
+    if (!goBackRef) return;
+    goBackRef.current = () => {
+      if (currentIndex === 0) return;
+      const prevIndex = currentIndex - 1;
+      const prevItem = data[prevIndex];
+      if (prevItem?.id) {
+        seenIds.current.delete(prevItem.id);
+        _cachedSeenIds = new Set(seenIds.current);
+      }
+      setCurrentIndex(prevIndex);
+      _cachedIndex = prevIndex;
+      animatedValues.value = prevIndex;
+    };
+  }, [currentIndex, data, goBackRef]);
+
+  // If the saved page was never visited, _cachedSaved is empty and savedIds starts empty.
+  // Fetch saved IDs from the API once so we never double-save across sessions.
+  useEffect(() => {
+    if (userId && _cachedSaved.length === 0) {
+      fetchSavedProducts(userId)
+        .then((saved) => {
+          saved.forEach((p) => savedIds.current.add(p.id));
+        })
+        .catch(() => {});
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (!initialized.current && products.length > 0) {
       setData([...products]);
-      seenIds.current = new Set(products.map((product) => product.id));
-      setCurrentIndex(0);
+      seenIds.current = new Set(products.map((p) => p.id));
+      _cachedData = [...products];
+      _cachedSeenIds = new Set(products.map((p) => p.id));
+      _cachedIndex = 0;
       initialized.current = true;
     }
   }, [products]);
@@ -52,7 +93,10 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
   const handleSwiped = (direction: "LEFT" | "RIGHT", item: Product) => {
     const nextIndex = currentIndex + 1;
     setCurrentIndex(nextIndex);
+    _cachedIndex = nextIndex;
     seenIds.current.add(item.id);
+    _cachedSeenIds = new Set(seenIds.current);
+    if (direction === "LEFT") onAfterSwipe?.();
 
     const swipeRequest = userId
       ? swipeProduct(userId, item.id, direction).catch(() => {})
@@ -80,7 +124,11 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
             });
 
             if (uniqueMore.length > 0) {
-              setData((prev) => [...prev, ...uniqueMore]);
+              setData((prev) => {
+                const updated = [...prev, ...uniqueMore];
+                _cachedData = updated;
+                return updated;
+              });
             }
           }
         })
@@ -157,7 +205,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flex: 1,
-    paddingTop: vs(22),
+    paddingTop: vs(10),
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "center",

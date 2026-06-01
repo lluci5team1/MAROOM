@@ -460,7 +460,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
     paddingHorizontal: sc(28),
-    paddingBottom: vs(52),
+    paddingBottom: vs(140),
   },
   logoRow: {
     position: "absolute",
@@ -470,7 +470,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: sc(8),
   },
-  logoImg: { width: sc(36), height: sc(36) },
+  logoImg: { width: sc(36), height: sc(36), tintColor: "#fff" },
   logoText: {
     fontSize: ms(20),
     fontFamily: "PlusJakartaSans_600SemiBold",

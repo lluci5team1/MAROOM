@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
 import { fetchFeed, fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
@@ -11,23 +12,34 @@ import { icons } from "../../shared/assets/icons";
 
 const HOME_FEED_PAGE_SIZE = 10;
 
+let _cachedFeed: Product[] = [];
+let _cachedUserId: string | null = null;
+let _cachedCanGoBack = false;
+
 export function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(_cachedFeed);
+  const [userId, setUserId] = useState<string | null>(_cachedUserId);
+  const [loading, setLoading] = useState(_cachedFeed.length === 0);
+  const [canGoBack, setCanGoBack] = useState(_cachedCanGoBack);
+  const goBackRef = useRef<() => void>(() => {});
 
   useEffect(() => {
+    if (_cachedFeed.length > 0) return;
     async function load() {
       try {
         const id = await getUserId();
         setUserId(id);
+        _cachedUserId = id;
         const data = id
           ? await fetchFeed(id, HOME_FEED_PAGE_SIZE)
           : await fetchFurnitureItems();
-        setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
+        const feed = data.length > 0 ? data : MOCK_PRODUCTS;
+        setProducts(feed);
+        _cachedFeed = feed;
       } catch (error) {
         console.error("Failed to fetch furniture:", error);
         setProducts(MOCK_PRODUCTS);
+        _cachedFeed = MOCK_PRODUCTS;
       } finally {
         setLoading(false);
       }
@@ -46,6 +58,12 @@ export function HomePage() {
     }
   }, [userId]);
 
+  const handleGoBack = useCallback(() => {
+    goBackRef.current();
+    setCanGoBack(false);
+    _cachedCanGoBack = false;
+  }, []);
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -54,14 +72,29 @@ export function HomePage() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Image source={icons.LOGO2} style={styles.LOGO2} resizeMode="contain" />
+          <Image source={icons.appLogo} style={styles.LOGO2} resizeMode="contain" />
           <Text style={styles.title}>MAROOM</Text>
         </View>
+
+        <TouchableOpacity
+          style={[styles.undoButton, !canGoBack && styles.undoButtonDisabled]}
+          onPress={handleGoBack}
+          disabled={!canGoBack}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="arrow-undo" size={ms(20)} color="white" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.deckContainer}>
         <View style={styles.deckFrame}>
-          <SwipeCardDeck products={products} userId={userId} onLoadMore={handleLoadMore} />
+          <SwipeCardDeck
+            products={products}
+            userId={userId}
+            onLoadMore={handleLoadMore}
+            goBackRef={goBackRef}
+            onAfterSwipe={() => { setCanGoBack(true); _cachedCanGoBack = true; }}
+          />
         </View>
       </View>
     </View>
@@ -96,6 +129,24 @@ const styles = StyleSheet.create({
     color: "#2C84C6",
     fontFamily: "Poppins_700Bold",
     letterSpacing: 0.3,
+  },
+  undoButton: {
+    width: s(44),
+    height: s(44),
+    borderRadius: s(22),
+    backgroundColor: "#04B0FF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#04B0FF",
+    shadowOffset: { width: 0, height: vs(3) },
+    shadowOpacity: 0.35,
+    shadowRadius: ms(6),
+    elevation: 4,
+  },
+  undoButtonDisabled: {
+    backgroundColor: "#C7C7CC",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   logoBadge: {
     width: s(52),

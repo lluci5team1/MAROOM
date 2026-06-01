@@ -40,6 +40,12 @@ public class SavedController {
 
     @PostMapping("/items")
     public ResponseEntity<SavedItem> addItem(@RequestBody SavedItem item) {
+        if (savedItemRepository.existsBySavedListIdAndFurnitureId(item.getSavedListId(), item.getFurnitureId())) {
+            return savedItemRepository
+                    .findFirstBySavedListIdAndFurnitureId(item.getSavedListId(), item.getFurnitureId())
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.ok(savedItemRepository.save(item)));
+        }
         return ResponseEntity.ok(savedItemRepository.save(item));
     }
 

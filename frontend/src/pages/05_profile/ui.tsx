@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Image,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
 import { fetchUser } from "../../entities/user/api";
@@ -18,20 +20,25 @@ export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const userId = await getUserId();
-        if (userId) {
-          const user = await fetchUser(userId);
-          setDisplayName(user.displayName);
-          setEmail(user.email);
-        }
-      } catch {}
-    }
-    load();
-  }, []);
+  // Reload profile every time this screen is focused so edits appear immediately
+  useFocusEffect(
+    useCallback(() => {
+      async function load() {
+        try {
+          const userId = await getUserId();
+          if (userId) {
+            const user = await fetchUser(userId);
+            setDisplayName(user.displayName);
+            setEmail(user.email);
+            setProfilePictureUrl(user.profilePictureUrl ?? null);
+          }
+        } catch {}
+      }
+      load();
+    }, [])
+  );
 
   const handleLogout = async () => {
     try {
@@ -52,9 +59,13 @@ export function ProfilePage() {
       >
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={72} color="#9BAAB8" />
-          </View>
+          {profilePictureUrl ? (
+            <Image source={{ uri: profilePictureUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={72} color="#9BAAB8" />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.editBadge}
             onPress={() => router.push("/edit-profile" as any)}
@@ -203,6 +214,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E4EAEF",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
   editBadge: {
     position: "absolute",
