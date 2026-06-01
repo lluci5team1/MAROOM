@@ -28,6 +28,11 @@ export async function signup(body: SignupRequest): Promise<AuthResponse> {
   return res.data;
 }
 
+export async function googleLogin(idToken: string): Promise<AuthResponse> {
+  const res = await apiClient.post("/auth/google", { idToken });
+  return res.data;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

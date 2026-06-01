@@ -22,6 +22,15 @@ const config: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: "com.maroom.app",
     buildNumber: "1",
+    infoPlist: {
+      CFBundleURLTypes: [
+        {
+          CFBundleURLSchemes: [
+            "com.googleusercontent.apps.917533190545-kuuchres7gqrqf463lkm5jr1lek2me2u",
+          ],
+        },
+      ],
+    },
   },
 
   android: {
