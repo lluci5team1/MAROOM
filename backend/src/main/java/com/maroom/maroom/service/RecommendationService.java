@@ -163,6 +163,13 @@ public class RecommendationService {
                               and ue.embedding_model = ?
                               and ue.embedding_dim = ?
                               and se.id is null
+                              and not exists (
+                                  select 1
+                                  from saved_list sl
+                                  join saved_item si on si.saved_list_id = sl.id
+                                  where sl.user_id = ue.user_id
+                                    and si.furniture_id = fi.id
+                              )
                             order by fe.combined_embedding <=> ue.embedding
                             limit ?
                             """,
@@ -209,6 +216,7 @@ public class RecommendationService {
         Set<UUID> excludedIds = new HashSet<>(usedIds);
         if (userId != null) {
             excludedIds.addAll(swipeEventRepository.findFurnitureIdsByUserId(userId));
+            excludedIds.addAll(findSavedFurnitureIds(userId));
         }
 
         List<FurnitureItem> fallbackItems = new ArrayList<>(furnitureItemRepository.findAll());
@@ -347,6 +355,23 @@ public class RecommendationService {
             return 0;
         }
         return Math.min(requestedSize, MAX_FEED_SIZE);
+    }
+
+    private List<UUID> findSavedFurnitureIds(UUID userId) {
+        try {
+            List<UUID> savedIds = jdbcTemplate.queryForList("""
+                            select si.furniture_id
+                            from saved_item si
+                            join saved_list sl on sl.id = si.saved_list_id
+                            where sl.user_id = ?
+                            """,
+                    UUID.class,
+                    userId);
+            return savedIds == null ? List.of() : savedIds;
+        } catch (Exception e) {
+            log.warn("Failed to load saved furniture exclusions for {}: {}", userId, e.getMessage());
+            return List.of();
+        }
     }
 
     private RowMapper<FurnitureItem> furnitureItemRowMapper() {

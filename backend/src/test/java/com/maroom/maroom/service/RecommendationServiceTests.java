@@ -79,6 +79,23 @@ class RecommendationServiceTests {
     }
 
     @Test
+    void fallsBackWithoutSavedFurnitureWhenEmbeddingsAreUnavailable() {
+        UUID userId = UUID.randomUUID();
+        FurnitureItem savedItem = furnitureItem("Saved lamp");
+        FurnitureItem unsavedItem = furnitureItem("Unsaved chair");
+
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class))).thenReturn(false);
+        when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(anyString(), eq(UUID.class), eq(userId)))
+                .thenReturn(List.of(savedItem.getId()));
+        when(furnitureItemRepository.findAll()).thenReturn(List.of(savedItem, unsavedItem));
+
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 10);
+
+        assertThat(feed).containsExactly(unsavedItem);
+    }
+
+    @Test
     void capsRequestedFeedSize() {
         UUID userId = UUID.randomUUID();
 
