@@ -109,7 +109,7 @@ public class SwipeController {
 
     @GetMapping("/feed/{userId}")
     public ResponseEntity<List<FurnitureItem>> getFeed(@PathVariable UUID userId,
-                                                       @RequestParam(defaultValue = "20") int size) {
+                                                       @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(recommendationService.getRandomFeedForUser(userId, size));
     }
 }

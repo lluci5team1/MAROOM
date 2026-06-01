@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { SwipeCardDeck } from "../../widgets/swipe-card-stack";
-import { fetchFurnitureItems } from "../../entities/product/api";
+import { fetchFeed, fetchFurnitureItems } from "../../entities/product/api";
 import { Product } from "../../entities/product/type";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { getUserId } from "../../shared/api/token";
 import { LoadingScreen } from "../../shared/ui/LoadingScreen";
 import { s, vs, ms } from "../../shared/utils/scale";
 import { icons } from "../../shared/assets/icons";
+
+const HOME_FEED_PAGE_SIZE = 10;
 
 export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,7 +21,9 @@ export function HomePage() {
       try {
         const id = await getUserId();
         setUserId(id);
-        const data = await fetchFurnitureItems();
+        const data = id
+          ? await fetchFeed(id, HOME_FEED_PAGE_SIZE)
+          : await fetchFurnitureItems();
         setProducts(data.length > 0 ? data : MOCK_PRODUCTS);
       } catch (error) {
         console.error("Failed to fetch furniture:", error);
@@ -34,11 +38,13 @@ export function HomePage() {
 
   const handleLoadMore = useCallback(async () => {
     try {
-      return await fetchFurnitureItems();
+      return userId
+        ? await fetchFeed(userId, HOME_FEED_PAGE_SIZE)
+        : await fetchFurnitureItems();
     } catch {
       return [];
     }
-  }, []);
+  }, [userId]);
 
   if (loading) {
     return <LoadingScreen />;

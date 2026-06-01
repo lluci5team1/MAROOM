@@ -7,7 +7,7 @@ export async function fetchFurnitureItems(): Promise<Product[]> {
   return res.data;
 }
 
-export async function fetchFeed(userId: string, size = 20): Promise<Product[]> {
+export async function fetchFeed(userId: string, size = 10): Promise<Product[]> {
   const res = await apiClient.get(`/swipe/feed/${userId}?size=${size}`);
   return res.data;
 }
