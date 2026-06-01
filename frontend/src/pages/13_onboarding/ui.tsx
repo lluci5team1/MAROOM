@@ -121,7 +121,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   return (
     <View style={s.welcome}>
       <View style={s.logoRow}>
-        <Image source={icons.maroon_onboarding} style={s.logoImg} resizeMode="contain" />
+        <Image source={icons.LOGO2} style={s.logoImg} resizeMode="contain" />
         <Text style={s.logoText}>MAROOM</Text>
       </View>
       <Image source={icons.onboarding_image} style={s.illustration} resizeMode="contain" />

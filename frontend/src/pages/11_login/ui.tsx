@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { icons } from "../../shared/assets/icons";
 import { useRouter } from "expo-router";
 import { login } from "../../entities/user/api";
@@ -121,15 +121,6 @@ export default function LoginScreen() {
           <Text style={styles.socialText}>Continue with Google</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.socialButton}>
-          <FontAwesome name="apple" size={18} />
-          <Text style={styles.socialText}>Continue with Apple</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.socialButton}>
-          <FontAwesome name="facebook" size={18} color="#1877F2" />
-          <Text style={styles.socialText}>Continue with Facebook</Text>
-        </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Contact</Text>
