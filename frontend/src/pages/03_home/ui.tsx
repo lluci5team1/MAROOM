@@ -93,7 +93,14 @@ export function HomePage() {
             userId={userId}
             onLoadMore={handleLoadMore}
             goBackRef={goBackRef}
-            onAfterSwipe={() => { setCanGoBack(true); _cachedCanGoBack = true; }}
+            onAfterSwipe={(direction) => {
+              // Undo is only meaningful for LEFT swipes (re-show the dismissed
+              // card). After a RIGHT swipe the item was saved/liked, so grey
+              // the button out to make that obvious.
+              const next = direction === "LEFT";
+              setCanGoBack(next);
+              _cachedCanGoBack = next;
+            }}
           />
         </View>
       </View>

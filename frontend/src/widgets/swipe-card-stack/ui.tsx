@@ -16,7 +16,9 @@ type Props = {
   products: Product[];
   userId: string | null;
   onLoadMore?: () => Promise<Product[]>;
-  onAfterSwipe?: () => void;
+  // Direction is forwarded so the parent (HomePage) can drive the undo-button
+  // colour: blue (canGoBack=true) after LEFT, grey (canGoBack=false) after RIGHT.
+  onAfterSwipe?: (direction: "LEFT" | "RIGHT") => void;
   goBackRef?: { current: () => void };
 };
 
@@ -122,7 +124,9 @@ export function SwipeCardDeck({ products, userId, onLoadMore, onAfterSwipe, goBa
     _cachedIndex = nextIndex;
     seenIds.current.add(item.id);
     _cachedSeenIds = new Set(seenIds.current);
-    if (direction === "LEFT") onAfterSwipe?.();
+    // Always notify the parent so it can flip the undo-button colour based on
+    // direction (LEFT → blue/enabled, RIGHT → grey/disabled).
+    onAfterSwipe?.(direction);
 
     // The backend /swipe endpoint already saves the item to the "Liked" list
     // when direction === "RIGHT" (and dedupes via existsBySavedListIdAndFurnitureId).
