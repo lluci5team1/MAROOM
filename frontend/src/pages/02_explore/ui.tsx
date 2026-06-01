@@ -18,7 +18,7 @@ import { s, vs, ms } from "../../shared/utils/scale";
 import { _cachedSaved } from "../04_saved/ui";
 import { FilterModal } from "../../features/filter/ui/FilterModal";
 import { DEFAULT_FILTER, FilterState, PRICE_MAX, PRICE_MIN } from "../../features/filter/model/type";
-import { fetchFeed, searchFurnitureItems } from "../../entities/product/api";
+import { fetchRecommendations, searchFurnitureItems } from "../../entities/product/api";
 import { getUserId } from "../../shared/api/token";
 import { MOCK_PRODUCTS } from "../../entities/product/mockData";
 import { Product } from "../../entities/product/type";
@@ -178,7 +178,7 @@ export function ExplorePage() {
       let data: Product[];
 
       if (isDefault && userIdRef.current) {
-        data = await fetchFeed(userIdRef.current, 60);
+        data = await fetchRecommendations(userIdRef.current, 60);
       } else {
         data = await searchFurnitureItems({
           q: searchText,

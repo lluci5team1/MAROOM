@@ -53,7 +53,7 @@ class RecommendationServiceTests {
                 eq(userId),
                 eq("voyage-multimodal-3.5"),
                 eq(1024),
-                eq(2)
+                eq(10)
         )).thenReturn(List.of(rankedItem));
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
         when(furnitureItemRepository.findAll()).thenReturn(List.of(rankedItem, fallbackItem));
@@ -102,8 +102,36 @@ class RecommendationServiceTests {
                 eq(userId),
                 eq("voyage-multimodal-3.5"),
                 eq(1024),
-                eq(100)
+                eq(500)
         );
+    }
+
+    @Test
+    void deduplicatesRankedItemsByProductIdentity() {
+        UUID userId = UUID.randomUUID();
+        FurnitureItem rankedItem = furnitureItem("Same lamp");
+        FurnitureItem duplicateItem = furnitureItem("Same lamp");
+        FurnitureItem anotherItem = furnitureItem("Another chair");
+
+        rankedItem.setImageUrl("https://cdn.example.com/products/same-lamp.jpg?size=large");
+        duplicateItem.setImageUrl("https://cdn.example.com/products/same-lamp.jpg?size=small");
+        anotherItem.setImageUrl("https://cdn.example.com/products/another-chair.jpg");
+
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class))).thenReturn(true);
+        when(jdbcTemplate.query(
+                anyString(),
+                any(RowMapper.class),
+                eq(userId),
+                eq("voyage-multimodal-3.5"),
+                eq(1024),
+                eq(15)
+        )).thenReturn(List.of(rankedItem, duplicateItem, anotherItem));
+        when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
+        when(furnitureItemRepository.findAll()).thenReturn(List.of());
+
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 3);
+
+        assertThat(feed).containsExactly(rankedItem, anotherItem);
     }
 
     private FurnitureItem furnitureItem(String title) {

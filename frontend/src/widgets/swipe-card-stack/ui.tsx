@@ -9,8 +9,8 @@ import { SwipeableCard } from "../../features/main-page/swipeable-card/swipeable
 import { ProductCardBack } from "../../shared/ui/ProductCardBack";
 import { RoundButton } from "../../shared/ui/likeButton";
 import { icons } from "../../shared/assets/icons";
-import { saveProductForUser, swipeProduct } from "../../entities/product/api";
-import { _cachedSaved, invalidateSavedCache } from "../../pages/04_saved/ui";
+import { swipeProduct } from "../../entities/product/api";
+import { invalidateSavedCache } from "../../pages/04_saved/ui";
 
 type Props = {
   products: Product[];
@@ -33,7 +33,6 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
   const loadingMore = useRef(false);
   const initialized = useRef(false);
   const seenIds = useRef(new Set<string>());
-  const savedIds = useRef(new Set<string>(_cachedSaved.map((p) => p.id)));
   const ACTIVE_PRESS_MS = 420;
   const SWIPE_TRIGGER_DELAY_MS = 130;
 
@@ -58,9 +57,7 @@ export function SwipeCardDeck({ products, userId, onLoadMore }: Props) {
       ? swipeProduct(userId, item.id, direction).catch(() => {})
       : Promise.resolve();
 
-    if (userId && direction === "RIGHT" && !savedIds.current.has(item.id)) {
-      savedIds.current.add(item.id);
-      saveProductForUser(userId, item.id).catch(() => {});
+    if (userId && direction === "RIGHT") {
       invalidateSavedCache();
     }
 
