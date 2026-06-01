@@ -21,7 +21,7 @@ export function ProductCard({ product }: { product: Product }) {
             <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
               {product.title}
             </Text>
-            <Text style={styles.price}>${product.price}</Text>
+            <Text style={styles.price}>${product.price.toFixed(2)}</Text>
           </View>
         </View>
       </View>

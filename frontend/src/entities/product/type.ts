@@ -5,7 +5,7 @@ export type Product = {
   brand: string;
   style: string;
   color: string;
-  price: number; // Integer → number
+  price: number;
   roomType: string;
   imageUrl: string;
   productUrl: string;

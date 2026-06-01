@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -25,7 +26,8 @@ public class FurnitureItem {
     private String brand;
     private String style;
     private String color;
-    private Integer price;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal price;
     private String roomType;
 
     @Column(length = 2000)
@@ -54,8 +56,8 @@ public class FurnitureItem {
     public String getColor() { return color; }
     public void setColor(String color) { this.color = color; }
 
-    public Integer getPrice() { return price; }
-    public void setPrice(Integer price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public String getRoomType() { return roomType; }
     public void setRoomType(String roomType) { this.roomType = roomType; }

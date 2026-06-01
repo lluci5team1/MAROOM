@@ -1,5 +1,6 @@
 package com.maroom.maroom.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ public record SavedFurnitureResponse(
         String brand,
         String style,
         String color,
-        Integer price,
+        BigDecimal price,
         String roomType,
         String productUrl,
         String imageUrl

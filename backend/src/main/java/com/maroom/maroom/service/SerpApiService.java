@@ -10,15 +10,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class SerpApiService {
 
     private static final Logger log = LoggerFactory.getLogger(SerpApiService.class);
+    private static final Pattern PRICE_PATTERN = Pattern.compile("\\d+(?:\\.\\d+)?");
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -73,7 +78,7 @@ public class SerpApiService {
                 item.setImageUrl(firstText(result, "thumbnail", "serpapi_thumbnail"));
 
                 if (result.has("extracted_price")) {
-                    item.setPrice((int) Math.round(result.path("extracted_price").asDouble()));
+                    item.setPrice(normalizePrice(result.get("extracted_price").decimalValue()));
                 } else {
                     item.setPrice(parsePrice(result.path("price").asText(null)));
                 }
@@ -104,21 +109,25 @@ public class SerpApiService {
         return null;
     }
 
-    private Integer parsePrice(String value) {
+    private BigDecimal parsePrice(String value) {
         if (!hasText(value)) {
             return null;
         }
 
-        String cleaned = value.replaceAll("[^0-9.]", "");
-        if (cleaned.isBlank()) {
+        Matcher matcher = PRICE_PATTERN.matcher(value.replace(",", ""));
+        if (!matcher.find()) {
             return null;
         }
 
         try {
-            return (int) Math.round(Double.parseDouble(cleaned));
+            return normalizePrice(new BigDecimal(matcher.group()));
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private BigDecimal normalizePrice(BigDecimal price) {
+        return price == null ? null : price.setScale(2, RoundingMode.HALF_UP);
     }
 
     private boolean hasText(String value) {

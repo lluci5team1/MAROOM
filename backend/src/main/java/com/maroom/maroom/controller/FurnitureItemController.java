@@ -8,6 +8,7 @@ import com.maroom.maroom.service.FurnitureEmbeddingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -337,11 +338,11 @@ public class FurnitureItemController {
             return true;
         }
 
-        if (minPrice != null && item.getPrice() < minPrice) {
+        if (minPrice != null && item.getPrice().compareTo(BigDecimal.valueOf(minPrice)) < 0) {
             return false;
         }
 
-        if (maxPrice != null && item.getPrice() > maxPrice) {
+        if (maxPrice != null && item.getPrice().compareTo(BigDecimal.valueOf(maxPrice)) > 0) {
             return false;
         }
 
@@ -462,8 +463,8 @@ public class FurnitureItemController {
                 .toList();
     }
 
-    private Integer getSafePrice(FurnitureItem item) {
-        return item.getPrice() == null ? Integer.MAX_VALUE : item.getPrice();
+    private BigDecimal getSafePrice(FurnitureItem item) {
+        return item.getPrice() == null ? BigDecimal.valueOf(Integer.MAX_VALUE) : item.getPrice();
     }
 
     private boolean noFiltersApplied(

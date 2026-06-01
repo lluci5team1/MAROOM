@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -278,11 +279,13 @@ public class RecommendationService {
             return true;
         }
 
-        if (preference.getMinBudget() != null && item.getPrice() < preference.getMinBudget()) {
+        if (preference.getMinBudget() != null
+                && item.getPrice().compareTo(BigDecimal.valueOf(preference.getMinBudget())) < 0) {
             return false;
         }
 
-        if (preference.getMaxBudget() != null && item.getPrice() > preference.getMaxBudget()) {
+        if (preference.getMaxBudget() != null
+                && item.getPrice().compareTo(BigDecimal.valueOf(preference.getMaxBudget())) > 0) {
             return false;
         }
 
@@ -356,8 +359,7 @@ public class RecommendationService {
             item.setStyle(rs.getString("style"));
             item.setColor(rs.getString("color"));
 
-            int price = rs.getInt("price");
-            item.setPrice(rs.wasNull() ? null : price);
+            item.setPrice(rs.getBigDecimal("price"));
 
             item.setRoomType(rs.getString("room_type"));
             item.setProductUrl(rs.getString("product_url"));
