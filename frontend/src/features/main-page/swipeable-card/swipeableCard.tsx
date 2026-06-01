@@ -53,7 +53,7 @@ export function SwipeableCard(props: Props) {
         translateX,
       });
     }
-  }, [enabled, swipeLeft, swipeRight]);
+  }, [enabled]);
 
   return (
     <View style={styles.container}>

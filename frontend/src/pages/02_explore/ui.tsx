@@ -88,7 +88,7 @@ function applyClientSideFilters(items: Product[], q: string, filter: FilterState
   return result;
 }
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 60;
 
 // ─── Three-dot loading indicator ─────────────────────────────────────────────
 function ThreeDotsLoader() {
@@ -168,11 +168,15 @@ export function ExplorePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
+  const seenIdsRef = useRef<Set<string>>(new Set(_cachedProducts.map((p) => p.id)));
+  const isDefaultRef = useRef(true);
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
     const isDefault = !searchText && !filter.brand && filter.category.length === 0
       && filter.color.length === 0 && filter.style.length === 0
       && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX;
+
+    isDefaultRef.current = isDefault;
 
     try {
       let data: Product[];
@@ -202,7 +206,9 @@ export function ExplorePage() {
         return filter.style.some((f) => s.includes(f.toLowerCase()) || f.toLowerCase().includes(s));
       });
 
+      seenIdsRef.current = new Set(result.map((p) => p.id));
       setProducts(result);
+      setVisibleCount(result.length);
       if (isDefault) _cachedProducts = result;
     } catch {
       // On error only fall back to mock when no filter is active
@@ -227,30 +233,52 @@ export function ExplorePage() {
 
   const handleRefresh = useCallback(() => {
     _cachedProducts = [];
+    seenIdsRef.current = new Set();
     setVisibleCount(PAGE_SIZE);
     setRefreshing(true);
     loadProducts("", DEFAULT_FILTER);
   }, [loadProducts]);
-
-  // Reset visible window whenever the product list changes (search / filter)
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [products]);
 
   const handleScroll = useCallback((e: any) => {
     if (loadingMoreRef.current) return;
     const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
     const nearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 400;
     if (!nearBottom) return;
-    setVisibleCount((prev) => {
-      if (prev >= products.length) return prev;
+
+    if (isDefaultRef.current && userIdRef.current) {
       loadingMoreRef.current = true;
       setLoadingMore(true);
-      setTimeout(() => {
-        setVisibleCount((c) => Math.min(c + PAGE_SIZE, products.length));
-        setLoadingMore(false);
-        loadingMoreRef.current = false;
-      }, 500);
-      return prev;
-    });
+      fetchRecommendations(userIdRef.current, 60)
+        .then((more: Product[]) => {
+          const unique = more.filter((p: Product) => !seenIdsRef.current.has(p.id));
+          unique.forEach((p: Product) => seenIdsRef.current.add(p.id));
+          if (unique.length > 0) {
+            setProducts((prev) => {
+              const updated = [...prev, ...unique];
+              _cachedProducts = updated;
+              setVisibleCount(updated.length);
+              return updated;
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setLoadingMore(false);
+          loadingMoreRef.current = false;
+        });
+    } else {
+      setVisibleCount((prev) => {
+        if (prev >= products.length) return prev;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+        setTimeout(() => {
+          setVisibleCount((c) => Math.min(c + PAGE_SIZE, products.length));
+          setLoadingMore(false);
+          loadingMoreRef.current = false;
+        }, 500);
+        return prev;
+      });
+    }
   }, [products.length]);
 
   const visibleProducts = products.slice(0, visibleCount);

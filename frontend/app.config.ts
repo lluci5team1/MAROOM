@@ -8,26 +8,26 @@ const config: ExpoConfig = {
 
   orientation: "portrait",
 
-  icon: "./assets/images/icon.png",
+  icon: "./src/shared/assets/icon.png",
 
   scheme: "maroomapp",
 
   userInterfaceStyle: "automatic",
 
-  newArchEnabled: false,
+  newArchEnabled: true,
 
   platforms: ["ios", "android", "web"],
 
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "com.maroom.app",
+    buildNumber: "1",
   },
 
   android: {
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
+      foregroundImage: "./src/shared/assets/adaptive-icon.png",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
@@ -35,7 +35,7 @@ const config: ExpoConfig = {
 
   web: {
     output: "static",
-    favicon: "./assets/images/favicon.png",
+    favicon: "./src/shared/assets/favicon.png",
   },
 
   plugins: [
@@ -44,7 +44,7 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
+        image: "./src/shared/assets/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",

@@ -149,14 +149,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardArea: {
-    flex: 1,
+    height: vs(30) + s(460),
     width: "100%",
   },
   actions: {
-    paddingTop: vs(12),
-    paddingBottom: vs(24),
+    flex: 1,
+    paddingTop: vs(22),
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
     gap: s(32),
   },
