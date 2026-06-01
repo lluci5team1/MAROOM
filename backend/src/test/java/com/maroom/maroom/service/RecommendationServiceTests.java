@@ -53,12 +53,13 @@ class RecommendationServiceTests {
                 eq(userId),
                 eq("voyage-multimodal-3.5"),
                 eq(1024),
-                eq(2)
+                eq(2),
+                eq(0)
         )).thenReturn(List.of(rankedItem));
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
         when(furnitureItemRepository.findAll()).thenReturn(List.of(rankedItem, fallbackItem));
 
-        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 2);
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 2, 0);
 
         assertThat(feed).containsExactly(rankedItem, fallbackItem);
     }
@@ -73,7 +74,7 @@ class RecommendationServiceTests {
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of(swipedItem.getId()));
         when(furnitureItemRepository.findAll()).thenReturn(List.of(swipedItem, unswipedItem));
 
-        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 10);
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 10, 0);
 
         assertThat(feed).containsExactly(unswipedItem);
     }
@@ -90,7 +91,7 @@ class RecommendationServiceTests {
                 .thenReturn(List.of(savedItem.getId()));
         when(furnitureItemRepository.findAll()).thenReturn(List.of(savedItem, unsavedItem));
 
-        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 10);
+        List<FurnitureItem> feed = recommendationService.getRecommendationsForUser(userId, 10, 0);
 
         assertThat(feed).containsExactly(unsavedItem);
     }
@@ -106,12 +107,13 @@ class RecommendationServiceTests {
                 eq(userId),
                 eq("voyage-multimodal-3.5"),
                 eq(1024),
+                anyInt(),
                 anyInt()
         )).thenReturn(List.of());
         when(swipeEventRepository.findFurnitureIdsByUserId(userId)).thenReturn(List.of());
         when(furnitureItemRepository.findAll()).thenReturn(List.of());
 
-        recommendationService.getRecommendationsForUser(userId, 500);
+        recommendationService.getRecommendationsForUser(userId, 500, 0);
 
         verify(jdbcTemplate).query(
                 anyString(),
@@ -119,7 +121,8 @@ class RecommendationServiceTests {
                 eq(userId),
                 eq("voyage-multimodal-3.5"),
                 eq(1024),
-                eq(100)
+                eq(60),
+                eq(0)
         );
     }
 

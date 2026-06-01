@@ -73,7 +73,7 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest req) {
         return userRepository.findById(id)
-                .map(user -> {
+                .<ResponseEntity<?>>map(user -> {
                     if (req.displayName() != null && !req.displayName().isBlank()) {
                         user.setDisplayName(req.displayName().trim());
                     }
