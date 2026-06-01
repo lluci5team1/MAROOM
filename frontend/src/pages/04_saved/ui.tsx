@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -20,9 +20,13 @@ import { SavedProductCard, CARD_W } from "../../shared/ui/saved/SavedProductCard
 const CATEGORIES = ["All Items", "Living Room", "Bedroom", "Dining Room", "Office", "Outdoor"];
 
 export let _cachedSaved: Product[] = [];
+// Scroll position survives tab switches and round-trips to the detail page,
+// so returning from a saved-item detail lands the user back where they left off.
+let _savedScrollY = 0;
 
 export function invalidateSavedCache() {
   _cachedSaved = [];
+  _savedScrollY = 0;
 }
 
 export function SavedPage() {
@@ -32,6 +36,10 @@ export function SavedPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [curCategory, setCurCategory] = useState("All Items");
   const [userId, setUserId] = useState<string | null>(null);
+  const flatListRef = useRef<FlatList<Product | null>>(null);
+  // Don't persist scrollY until after we've had a chance to restore it,
+  // otherwise the mount-time Y=0 event would clobber the saved value.
+  const scrollRestoredRef = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +88,8 @@ export function SavedPage() {
 
   const handleRefresh = useCallback(() => {
     _cachedSaved = [];
+    _savedScrollY = 0;
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     setRefreshing(true);
     load();
   }, [load]);
@@ -99,12 +109,35 @@ export function SavedPage() {
       <View style={styles.divider} />
 
       <FlatList
+        ref={flatListRef}
         data={displayItems}
         keyExtractor={(item, i) => item?.id ?? `empty-${i}`}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          if (scrollRestoredRef.current) {
+            _savedScrollY = e.nativeEvent.contentOffset.y;
+          }
+        }}
+        onContentSizeChange={(_w, h) => {
+          if (scrollRestoredRef.current) return;
+          // Nothing to restore — flip the flag so onScroll starts persisting.
+          if (_savedScrollY <= 0) {
+            scrollRestoredRef.current = true;
+            return;
+          }
+          // Wait until the layout is tall enough for the saved offset,
+          // otherwise scrollToOffset silently clamps to the current max. Bail
+          // without flipping the flag so the next content-size tick gets
+          // another shot (images still loading, list still hydrating, etc.).
+          if (h >= _savedScrollY) {
+            flatListRef.current?.scrollToOffset({ offset: _savedScrollY, animated: false });
+            scrollRestoredRef.current = true;
+          }
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListHeaderComponent={
           <ScrollView
@@ -117,7 +150,12 @@ export function SavedPage() {
                 key={cat}
                 text={cat}
                 isSelected={curCategory === cat}
-                onPress={() => setCurCategory(cat)}
+                onPress={() => {
+                  // Different category = different list; start from the top.
+                  _savedScrollY = 0;
+                  flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+                  setCurCategory(cat);
+                }}
               />
             ))}
           </ScrollView>

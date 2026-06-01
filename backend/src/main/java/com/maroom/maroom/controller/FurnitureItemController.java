@@ -142,7 +142,9 @@ public class FurnitureItemController {
             @RequestParam(required = false) List<String> color,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
-            @RequestParam(required = false) String sortBy
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "60") int limit,
+            @RequestParam(defaultValue = "0") int offset
     ) {
         List<ScoredFurnitureItem> scoredItems = repo.findAll().stream()
                 .map(item -> new ScoredFurnitureItem(
@@ -168,6 +170,8 @@ public class FurnitureItemController {
 
         return ResponseEntity.ok(
                 scoredItems.stream()
+                        .skip(offset)
+                        .limit(limit)
                         .map(ScoredFurnitureItem::item)
                         .toList()
         );

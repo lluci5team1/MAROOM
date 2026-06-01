@@ -42,6 +42,9 @@ const ROW3_H = COL3_W;
 
 // ─── Module-level cache (survives tab switches) ───────────────────────────────
 let _cachedProducts: Product[] = [];
+// Scroll position survives tab switches and round-trips to the detail page,
+// so returning from a product detail lands the user back where they left off.
+let _savedScrollY = 0;
 
 // ─── Color name → DB keyword expansion ───────────────────────────────────────
 const COLOR_KEYWORDS: Record<string, string[]> = {
@@ -164,13 +167,44 @@ export function ExplorePage() {
   const [products, setProducts] = useState<Product[]>(_cachedProducts);
   const [loading, setLoading] = useState(_cachedProducts.length === 0);
   const [refreshing, setRefreshing] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [searching, setSearching] = useState(false);
+  // Visible count must mirror the cached products length on remount, otherwise
+  // a return-from-detail re-renders only the first PAGE_SIZE items and the
+  // scroll-restore can't reach Y positions that lived in paginated items.
+  const [visibleCount, setVisibleCount] = useState(
+    _cachedProducts.length > 0 ? _cachedProducts.length : PAGE_SIZE,
+  );
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
   const offsetRef = useRef<number>(_cachedProducts.length);
   const isDefaultRef = useRef(true);
+  // Tracks the params that produced the currently-displayed list so paginated
+  // load-more requests can reuse them (and so a stale page from a previous
+  // search/filter never gets appended to a newer one).
+  const lastSearchRef = useRef<{ q: string; filter: FilterState }>({
+    q: "",
+    filter: DEFAULT_FILTER,
+  });
+  const hasMoreRef = useRef(true);
+  // Monotonic id used to invalidate in-flight requests when the user kicks
+  // off a newer search/filter/refresh while previous results are still loading.
+  const requestIdRef = useRef(0);
   const blockTypesRef = useRef<number[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
+  // We only start persisting scrollY once we've had a chance to restore it,
+  // otherwise the initial Y=0 from mount would clobber the saved value.
+  const scrollRestoredRef = useRef(false);
+
+  const buildSearchParams = (searchText: string, filter: FilterState) => ({
+    q: searchText,
+    brand: filter.brand,
+    category: filter.category,
+    color: expandColorNames(filter.color),
+    minPrice: filter.priceRange.min > PRICE_MIN ? filter.priceRange.min : undefined,
+    maxPrice: filter.priceRange.max < PRICE_MAX ? filter.priceRange.max : undefined,
+    sortBy: filter.sortBy,
+  });
 
   const loadProducts = useCallback(async (searchText: string, filter: FilterState) => {
     const isDefault = !searchText && !filter.brand && filter.category.length === 0
@@ -178,6 +212,14 @@ export function ExplorePage() {
       && filter.priceRange.min <= PRICE_MIN && filter.priceRange.max >= PRICE_MAX;
 
     isDefaultRef.current = isDefault;
+    lastSearchRef.current = { q: searchText, filter };
+    hasMoreRef.current = true;
+    // Any in-flight load-more from a previous query becomes stale.
+    const requestId = ++requestIdRef.current;
+    // Cancel any pending pagination lock so the new search isn't blocked.
+    loadingMoreRef.current = false;
+    setLoadingMore(false);
+    if (!isDefault) setSearching(true);
 
     try {
       let data: Product[];
@@ -185,16 +227,14 @@ export function ExplorePage() {
       if (isDefault && userIdRef.current) {
         data = await fetchRecommendations(userIdRef.current, PAGE_SIZE, 0);
       } else {
-        data = await searchFurnitureItems({
-          q: searchText,
-          brand: filter.brand,
-          category: filter.category,
-          color: expandColorNames(filter.color),
-          minPrice: filter.priceRange.min > PRICE_MIN ? filter.priceRange.min : undefined,
-          maxPrice: filter.priceRange.max < PRICE_MAX ? filter.priceRange.max : undefined,
-          sortBy: filter.sortBy,
-        });
+        data = await searchFurnitureItems(
+          buildSearchParams(searchText, filter),
+          PAGE_SIZE,
+          0,
+        );
       }
+
+      if (requestId !== requestIdRef.current) return;
 
       // Only fall back to mock when no filter is active and backend returned nothing
       const base = (!isDefault || data.length > 0)
@@ -207,21 +247,41 @@ export function ExplorePage() {
         return filter.style.some((f) => s.includes(f.toLowerCase()) || f.toLowerCase().includes(s));
       });
 
-      offsetRef.current = isDefault ? result.length : 0;
+      offsetRef.current = result.length;
+      hasMoreRef.current = data.length >= PAGE_SIZE;
+      // Reset the block-layout cycle so newly-loaded results start fresh.
+      blockTypesRef.current = [];
+      // Content changed (search/filter/initial load) — start from the top
+      // and forget any previously saved scroll position.
+      _savedScrollY = 0;
+      scrollRestoredRef.current = true;
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
       setProducts(result);
       setVisibleCount(result.length);
       if (isDefault) _cachedProducts = result;
     } catch {
+      if (requestId !== requestIdRef.current) return;
       // On error only fall back to mock when no filter is active
       if (isDefault) {
         const fallback = applyClientSideFilters(EXPLORE_MOCK, searchText, filter);
-        offsetRef.current = 0;
+        offsetRef.current = fallback.length;
+        hasMoreRef.current = false;
         setProducts(fallback);
+        setVisibleCount(fallback.length);
         _cachedProducts = fallback;
+      } else {
+        // Search/filter failed — clear results so the empty-state UI shows.
+        offsetRef.current = 0;
+        hasMoreRef.current = false;
+        setProducts([]);
+        setVisibleCount(0);
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+        setSearching(false);
+      }
     }
   }, []);
 
@@ -236,42 +296,70 @@ export function ExplorePage() {
 
   const handleRefresh = useCallback(() => {
     _cachedProducts = [];
+    _savedScrollY = 0;
     offsetRef.current = 0;
+    hasMoreRef.current = true;
+    setQuery("");
+    setActiveFilter(DEFAULT_FILTER);
     setVisibleCount(PAGE_SIZE);
     setRefreshing(true);
     loadProducts("", DEFAULT_FILTER);
   }, [loadProducts]);
 
   const handleScroll = useCallback((e: any) => {
-    if (loadingMoreRef.current) return;
     const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    // Persist the scroll position only after the initial restore pass —
+    // otherwise the mount-time Y=0 event would overwrite a real saved value.
+    if (scrollRestoredRef.current) {
+      _savedScrollY = contentOffset.y;
+    }
+    if (loadingMoreRef.current || !hasMoreRef.current) return;
     const nearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 400;
     if (!nearBottom) return;
 
-    if (isDefaultRef.current && userIdRef.current) {
-      loadingMoreRef.current = true;
-      setLoadingMore(true);
-      fetchRecommendations(userIdRef.current, PAGE_SIZE, offsetRef.current)
-        .then((more: Product[]) => {
-          if (more.length === 0) return;
-          offsetRef.current += more.length;
-          setProducts((prev) => {
-            const updated = [...prev, ...more];
-            _cachedProducts = updated;
-            return updated;
-          });
-          setVisibleCount((prev) => prev + more.length);
-        })
-        .catch(() => {})
-        .finally(() => {
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+
+    // Snapshot what produced the current list so a result that arrives after
+    // a new search has fired never gets appended to the wrong query.
+    const requestId = requestIdRef.current;
+    const wasDefault = isDefaultRef.current;
+    const startOffset = offsetRef.current;
+    const fetchPromise: Promise<Product[]> = wasDefault && userIdRef.current
+      ? fetchRecommendations(userIdRef.current, PAGE_SIZE, startOffset)
+      : searchFurnitureItems(
+          buildSearchParams(lastSearchRef.current.q, lastSearchRef.current.filter),
+          PAGE_SIZE,
+          startOffset,
+        );
+
+    fetchPromise
+      .then((more: Product[]) => {
+        if (requestId !== requestIdRef.current) return;
+        if (more.length < PAGE_SIZE) hasMoreRef.current = false;
+        if (more.length === 0) return;
+
+        // Defensive client-side dedupe — the server already paginates with
+        // offset, but this guards against deterministic ties / cache quirks.
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          const unique = more.filter((p) => !seen.has(p.id));
+          if (unique.length === 0) return prev;
+          offsetRef.current = startOffset + more.length;
+          const updated = [...prev, ...unique];
+          if (wasDefault) _cachedProducts = updated;
+          setVisibleCount(updated.length);
+          return updated;
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (requestId === requestIdRef.current) {
           setLoadingMore(false);
           loadingMoreRef.current = false;
-        });
-    } else {
-      // Client-side pagination for search/filter results (all loaded at once)
-      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, products.length));
-    }
-  }, [products.length]);
+        }
+      });
+  }, []);
 
   const visibleProducts = products.slice(0, visibleCount);
 
@@ -303,13 +391,17 @@ export function ExplorePage() {
           placeholderTextColor="#94A3B8"
           style={styles.searchInput}
           value={query}
-          onChangeText={(text) => { setQuery(text); loadProducts(text, activeFilter); }}
+          onChangeText={setQuery}
+          returnKeyType="search"
+          onSubmitEditing={() => loadProducts(query, activeFilter)}
         />
       </View>
       <View style={styles.divider} />
 
       {/* Grid */}
-      {products.length === 0 ? (
+      {searching ? (
+        <ThreeDotsLoader />
+      ) : products.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="search" size={64} color="#018ABD" />
           <Text style={styles.emptyTitle}>No Results Found</Text>
@@ -317,10 +409,28 @@ export function ExplorePage() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
-          scrollEventThrottle={200}
+          scrollEventThrottle={16}
           onScroll={handleScroll}
+          onContentSizeChange={(_w, h) => {
+            if (scrollRestoredRef.current) return;
+            // Nothing to restore — flip the flag so onScroll starts persisting.
+            if (_savedScrollY <= 0) {
+              scrollRestoredRef.current = true;
+              return;
+            }
+            // Wait until the layout is tall enough for the saved offset,
+            // otherwise scrollTo silently clamps to the current max. If the
+            // content isn't tall enough yet (images still loading, async
+            // pagination not in cache), bail without flipping the flag so the
+            // next onContentSizeChange tick gets another shot.
+            if (h >= _savedScrollY) {
+              scrollRef.current?.scrollTo({ y: _savedScrollY, animated: false });
+              scrollRestoredRef.current = true;
+            }
+          }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {blocks.map((block, i) => {

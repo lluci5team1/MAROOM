@@ -30,6 +30,8 @@ type FurnitureSearchParams = {
 
 export async function searchFurnitureItems(
   params: FurnitureSearchParams,
+  limit = 60,
+  offset = 0,
 ): Promise<Product[]> {
   const query = new URLSearchParams();
 
@@ -41,6 +43,8 @@ export async function searchFurnitureItems(
   if (params.minPrice != null) query.append("minPrice", String(params.minPrice));
   if (params.maxPrice != null) query.append("maxPrice", String(params.maxPrice));
   if (params.sortBy?.trim()) query.append("sortBy", params.sortBy.trim());
+  query.append("limit", String(limit));
+  query.append("offset", String(offset));
 
   const queryString = query.toString();
   const requestUrl = `/api/furniture-items/search?${queryString}`;
