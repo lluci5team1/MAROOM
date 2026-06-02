@@ -146,7 +146,7 @@ function SpaceTypeStep({ sel, onSel, onNext, onBack }: { sel: string | null; onS
       <ProgressBar step={1} />
       <StepLabel step={1} />
       <Text style={s.question}>What kind of space are{"\n"}you furnishing?</Text>
-      <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
         {SPACE_TYPES.map((item) => (
           <TouchableOpacity
             key={item.label}
@@ -175,7 +175,7 @@ function SpaceSizeStep({ sel, onSel, onNext, onBack }: { sel: string | null; onS
       <ProgressBar step={2} />
       <StepLabel step={2} />
       <Text style={s.question}>How would you describe{"\n"}your space?</Text>
-      <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
         {SPACE_SIZES.map((item) => (
           <TouchableOpacity
             key={item.label}
@@ -217,7 +217,7 @@ function StyleStep({
       <ProgressBar step={3} />
       <StepLabel step={3} />
       <Text style={s.question}>What styles speak to you?</Text>
-      <ScrollView contentContainerStyle={[s.list, { paddingBottom: 16 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
         <View style={s.grid}>
           {STYLE_ITEMS.map((item) => {
             const on = selected.includes(item.label);
@@ -261,7 +261,7 @@ function ColorStep({
       <ProgressBar step={4} />
       <StepLabel step={4} />
       <Text style={s.question}>What colors feel like{"\n"}home to you?</Text>
-      <ScrollView contentContainerStyle={[s.list, { paddingBottom: 16 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollView} contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
         <View style={s.grid}>
           {COLOR_PALETTES.map((p) => {
             const on = selected === p.label;
@@ -542,6 +542,17 @@ const s = StyleSheet.create({
     paddingHorizontal: sc(24),
     marginTop: vs(12),
     marginBottom: vs(28),
+  },
+  // ScrollView itself must flex to fill the space between header + footer.
+  scrollView: {
+    flex: 1,
+  },
+  // Content container must NOT use flex:1 — that pins content to the viewport
+  // height and disables scrolling (breaks the 7-item style grid on step 3).
+  listContent: {
+    paddingHorizontal: sc(24),
+    gap: vs(18),
+    paddingBottom: vs(16),
   },
   list: {
     flex: 1,

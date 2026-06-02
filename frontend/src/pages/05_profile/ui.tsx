@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,7 @@ import {
   Image,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { router, usePathname } from "expo-router";
 import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
 import { fetchUser } from "../../entities/user/api";
@@ -21,24 +20,35 @@ export function ProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const pathname = usePathname();
 
-  // Reload profile every time this screen is focused so edits appear immediately
-  useFocusEffect(
-    useCallback(() => {
-      async function load() {
-        try {
-          const userId = await getUserId();
-          if (userId) {
-            const user = await fetchUser(userId);
-            setDisplayName(user.displayName);
-            setEmail(user.email);
-            setProfilePictureUrl(user.profilePictureUrl ?? null);
-          }
-        } catch {}
-      }
-      load();
-    }, [])
-  );
+  // Re-load when the user navigates back to /profile (so edits in /edit-profile
+  // appear immediately on return). We watch the pathname instead of using
+  // `useFocusEffect` from expo-router — that hook combined with the New
+  // Architecture + Hermes (the TestFlight configuration) has been observed to
+  // force-close on first focus due to a race in the navigation-loaded gate.
+  useEffect(() => {
+    if (pathname !== "/profile") return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const userId = await getUserId();
+        if (!userId || cancelled) return;
+        const user = await fetchUser(userId);
+        if (cancelled) return;
+        setDisplayName(user.displayName ?? "");
+        setEmail(user.email ?? "");
+        // Defensive: ignore empty-string URLs — <Image source={{uri:""}}> can
+        // throw natively on iOS Release builds.
+        const url = user.profilePictureUrl;
+        setProfilePictureUrl(url && url.length > 0 ? url : null);
+      } catch {}
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -105,39 +115,43 @@ export function ProfilePage() {
         </View>
       </ScrollView>
 
-      {/* Logout Confirmation Modal */}
-      <Modal
-        visible={logoutVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLogoutVisible(false)}
-      >
-        <Pressable
-          style={styles.backdrop}
-          onPress={() => setLogoutVisible(false)}
+      {/* Logout Confirmation Modal — only mount when visible. An always-mounted
+          hidden <Modal transparent> has been observed to crash on iOS Release
+          builds running the New Architecture (Hermes + Fabric). */}
+      {logoutVisible && (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setLogoutVisible(false)}
         >
-          <Pressable style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Log Out</Text>
-            <Text style={styles.modalSubtitle}>
-              Are you sure you want to log out?
-            </Text>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.logoutButtonText}>Log Out</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setLogoutVisible(false)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => setLogoutVisible(false)}
+          >
+            <Pressable style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Log Out</Text>
+              <Text style={styles.modalSubtitle}>
+                Are you sure you want to log out?
+              </Text>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.logoutButtonText}>Log Out</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setLogoutVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }
