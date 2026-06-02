@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   Pressable,
   ScrollView,
   Image,
+  InteractionManager,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { router, usePathname } from "expo-router";
+import { router } from "expo-router";
 import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
 import { fetchUser } from "../../entities/user/api";
@@ -20,35 +20,33 @@ export function ProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
-  const pathname = usePathname();
 
-  // Re-load when the user navigates back to /profile (so edits in /edit-profile
-  // appear immediately on return). We watch the pathname instead of using
-  // `useFocusEffect` from expo-router — that hook combined with the New
-  // Architecture + Hermes (the TestFlight configuration) has been observed to
-  // force-close on first focus due to a race in the navigation-loaded gate.
+  // Load profile after the tab transition finishes. Do NOT use
+  // `useFocusEffect` from expo-router — TestFlight crashes (NO_CRASH_STACK on
+  // the RN JS thread) matched that hook + New Architecture on first Profile
+  // focus. Slot unmounts this screen when leaving the tab, so a mount-only
+  // effect also runs again when returning from /edit-profile.
   useEffect(() => {
-    if (pathname !== "/profile") return;
     let cancelled = false;
-    async function load() {
-      try {
-        const userId = await getUserId();
-        if (!userId || cancelled) return;
-        const user = await fetchUser(userId);
-        if (cancelled) return;
-        setDisplayName(user.displayName ?? "");
-        setEmail(user.email ?? "");
-        // Defensive: ignore empty-string URLs — <Image source={{uri:""}}> can
-        // throw natively on iOS Release builds.
-        const url = user.profilePictureUrl;
-        setProfilePictureUrl(url && url.length > 0 ? url : null);
-      } catch {}
-    }
-    load();
+    const task = InteractionManager.runAfterInteractions(() => {
+      (async () => {
+        try {
+          const userId = await getUserId();
+          if (!userId || cancelled) return;
+          const user = await fetchUser(userId);
+          if (cancelled) return;
+          setDisplayName(user.displayName ?? "");
+          setEmail(user.email ?? "");
+          const url = user.profilePictureUrl;
+          setProfilePictureUrl(url && url.length > 0 ? url : null);
+        } catch {}
+      })();
+    });
     return () => {
       cancelled = true;
+      task.cancel();
     };
-  }, [pathname]);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -115,21 +113,15 @@ export function ProfilePage() {
         </View>
       </ScrollView>
 
-      {/* Logout Confirmation Modal — only mount when visible. An always-mounted
-          hidden <Modal transparent> has been observed to crash on iOS Release
-          builds running the New Architecture (Hermes + Fabric). */}
+      {/* Logout sheet — plain overlay instead of RN <Modal>. Native Modal on
+          New Architecture + Hermes was implicated in Profile-tab crashes. */}
       {logoutVisible && (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => setLogoutVisible(false)}
-        >
+        <View style={styles.logoutOverlay} pointerEvents="box-none">
           <Pressable
             style={styles.backdrop}
             onPress={() => setLogoutVisible(false)}
           >
-            <Pressable style={styles.modalCard}>
+            <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
               <Text style={styles.modalTitle}>Log Out</Text>
               <Text style={styles.modalSubtitle}>
                 Are you sure you want to log out?
@@ -148,9 +140,9 @@ export function ProfilePage() {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-            </Pressable>
+            </View>
           </Pressable>
-        </Modal>
+        </View>
       )}
     </View>
   );
@@ -318,7 +310,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#1399E5",
   },
 
-  // Modal
+  logoutOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    elevation: 100,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
