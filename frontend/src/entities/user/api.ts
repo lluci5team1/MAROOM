@@ -1,10 +1,15 @@
 // features/auth/api.ts
 import { apiClient } from "../../shared/api/client";
+import { getToken, getProfileCache } from "../../shared/api/token";
+
+const RAILWAY_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://maroom-production.up.railway.app";
 
 export interface AuthResponse {
   token: string;
   userId: string;
   hasCompletedOnboarding: boolean;
+  email?: string;
+  displayName?: string;
 }
 
 export interface LoginRequest {
@@ -41,11 +46,28 @@ export interface UserProfile {
 }
 
 export async function fetchUser(userId: string): Promise<UserProfile> {
-  const res = await apiClient.get(`/users/${userId}`);
-  const user = res.data as UserProfile;
-  // Never keep inline base64 in JS heap — it crashes Hermes + native Image on Profile tab.
+  const token = await getToken();
+  const res = await fetch(`${RAILWAY_URL}/users/${userId}`, {
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new Error(`fetchUser failed: ${res.status}`);
+
+  const contentLength = Number(res.headers.get("content-length") ?? 0);
+  if (contentLength > 20_000) {
+    const cached = await getProfileCache();
+    return {
+      id: userId,
+      email: cached?.email ?? "",
+      displayName: cached?.displayName ?? "",
+    };
+  }
+
+  const user = (await res.json()) as UserProfile;
   if (user.profilePictureUrl?.startsWith("data:")) {
-    return { ...user, profilePictureUrl: undefined };
+    user.profilePictureUrl = undefined;
   }
   return user;
 }

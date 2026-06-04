@@ -58,7 +58,7 @@ public class AuthService {
         sessionToken.setUserId(savedUser.getId());
         sessionTokenRepository.save(sessionToken);
 
-        return new AuthResult(token, savedUser.getId(), false);
+        return new AuthResult(token, savedUser.getId(), false, savedUser.getEmail(), savedUser.getDisplayName());
     }
 
     public AuthResult login(String email, String password) {
@@ -83,7 +83,7 @@ public class AuthService {
 
         boolean hasCompletedOnboarding = preferenceRepository.existsById(user.getId());
 
-        return new AuthResult(token, user.getId(), hasCompletedOnboarding);
+        return new AuthResult(token, user.getId(), hasCompletedOnboarding, user.getEmail(), user.getDisplayName());
     }
 
     public AuthResult googleLogin(String idToken) {
@@ -130,7 +130,7 @@ public class AuthService {
 
         boolean hasCompletedOnboarding = preferenceRepository.existsById(user.getId());
 
-        return new AuthResult(token, user.getId(), hasCompletedOnboarding);
+        return new AuthResult(token, user.getId(), hasCompletedOnboarding, user.getEmail(), user.getDisplayName());
     }
 
     private GoogleIdToken.Payload verifyGoogleIdToken(String idToken) {

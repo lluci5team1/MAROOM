@@ -31,35 +31,42 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  console.log(
-    "[API REQUEST]",
-    config.method?.toUpperCase(),
-    (config.baseURL ?? "") + (config.url ?? ""),
-    config.data != null ? safeLogPayload(config.data) : "",
-  );
+  if (__DEV__) {
+    console.log(
+      "[API REQUEST]",
+      config.method?.toUpperCase(),
+      (config.baseURL ?? "") + (config.url ?? ""),
+      config.data != null ? safeLogPayload(config.data) : "",
+    );
+  }
   return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => {
-    console.log("[API RESPONSE]", response.status, safeLogPayload(response.data));
+    if (__DEV__) {
+      console.log("[API RESPONSE]", response.status, safeLogPayload(response.data));
+    }
     return response;
   },
   async (error) => {
     const config = error.config as any;
-    // If Railway is unreachable (no response = network error) and we haven't tried local yet
     if (!error.response && !config._localFallback) {
       config._localFallback = true;
       config.baseURL = LOCAL_URL;
-      console.log("[API FALLBACK] Railway unreachable — retrying on localhost:8080");
+      if (__DEV__) {
+        console.log("[API FALLBACK] Railway unreachable — retrying on localhost:8080");
+      }
       return apiClient(config);
     }
-    console.log(
-      "[API ERROR]",
-      error?.response?.status,
-      JSON.stringify(error?.response?.data),
-      error?.message,
-    );
+    if (__DEV__) {
+      console.log(
+        "[API ERROR]",
+        error?.response?.status,
+        JSON.stringify(error?.response?.data),
+        error?.message,
+      );
+    }
     return Promise.reject(error);
   },
 );

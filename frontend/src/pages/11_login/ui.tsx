@@ -16,7 +16,7 @@ import * as WebBrowser from "expo-web-browser";
 import { icons } from "../../shared/assets/icons";
 import { useRouter } from "expo-router";
 import { login, googleLogin } from "../../entities/user/api";
-import { saveToken, saveUserId, saveOnboardingFlag } from "../../shared/api/token";
+import { saveToken, saveUserId, saveOnboardingFlag, saveProfileCache } from "../../shared/api/token";
 import { s, vs, ms } from "../../shared/utils/scale";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -59,6 +59,10 @@ export default function LoginScreen() {
       await saveToken(res.token);
       await saveUserId(res.userId);
       await saveOnboardingFlag(res.hasCompletedOnboarding);
+      await saveProfileCache({
+        displayName: res.displayName ?? "",
+        email: res.email ?? email,
+      });
       if (res.hasCompletedOnboarding) {
         router.replace("/home");
       } else {
@@ -87,6 +91,10 @@ export default function LoginScreen() {
       await saveToken(res.token);
       await saveUserId(res.userId);
       await saveOnboardingFlag(res.hasCompletedOnboarding);
+      await saveProfileCache({
+        displayName: res.displayName ?? "",
+        email: res.email ?? email,
+      });
       if (res.hasCompletedOnboarding) {
         router.replace("/home");
       } else {

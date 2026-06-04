@@ -20,14 +20,30 @@ public class UserController {
 
     public record CreateUserRequest(String email, String displayName, String authProvider) {}
     public record UpdateUserRequest(String displayName, String profilePictureUrl) {}
+
+    /** Never includes inline base64 — large payloads crash iOS React Native clients. */
+    public record UserSummaryResponse(String id, String email, String displayName, String profilePictureUrl) {}
+
+    private static String safeAvatarUrl(String pic) {
+        if (pic == null || pic.isBlank()) return null;
+        if (pic.startsWith("http://") || pic.startsWith("https://")) return pic;
+        return null;
+    }
+
+    private UserSummaryResponse toSummary(User user) {
+        return new UserSummaryResponse(
+                user.getId().toString(),
+                user.getEmail(),
+                user.getDisplayName(),
+                safeAvatarUrl(user.getProfilePictureUrl())
+        );
+    }
+
+    /** @deprecated use {@link #toSummary(User)} */
     public record UserResponse(String id, String email, String displayName, String profilePictureUrl) {}
 
     private UserResponse toResponse(User user) {
-        String pic = user.getProfilePictureUrl();
-        // Inline base64 avatars crash iOS React Native Release builds when rendered.
-        if (pic != null && pic.startsWith("data:")) {
-            pic = null;
-        }
+        String pic = safeAvatarUrl(user.getProfilePictureUrl());
         return new UserResponse(
                 user.getId().toString(),
                 user.getEmail(),
@@ -71,7 +87,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getUser(@PathVariable UUID id) {
         return userRepository.findById(id)
-                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(toResponse(user)))
+                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(toSummary(user)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found")));
     }
 
@@ -90,7 +106,7 @@ public class UserController {
                             user.setProfilePictureUrl(pic);
                         }
                     }
-                    return ResponseEntity.ok(toResponse(userRepository.save(user)));
+                    return ResponseEntity.ok(toSummary(userRepository.save(user)));
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found")));
     }
