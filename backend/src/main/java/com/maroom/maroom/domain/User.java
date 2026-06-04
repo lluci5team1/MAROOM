@@ -32,6 +32,8 @@ public class User {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    private String phoneNumber;
+
     protected User() {}
 
     public User(String email, String displayName, String authProvider, String passwordHash) {
@@ -52,6 +54,8 @@ public class User {
     public String getAuthProvider() { return authProvider; }
     public String getPasswordHash() { return passwordHash; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getPhoneNumber() { return phoneNumber; }
 
     public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 }

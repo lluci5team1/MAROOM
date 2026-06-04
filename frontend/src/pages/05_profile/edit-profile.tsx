@@ -30,6 +30,7 @@ export function EditProfilePage() {
           const user = await fetchUser(id);
           setFullName(user.displayName);
           setEmail(user.email);
+          setPhone(user.phoneNumber ?? "");
         }
       } catch {}
     }
@@ -40,7 +41,7 @@ export function EditProfilePage() {
     if (!userId) return;
     setSaving(true);
     try {
-      await updateUserProfile(userId, { displayName: fullName });
+      await updateUserProfile(userId, { displayName: fullName, phoneNumber: phone });
       router.back();
     } catch {
       Alert.alert("Error", "Failed to save changes. Please try again.");

@@ -19,14 +19,15 @@ public class UserController {
     }
 
     public record CreateUserRequest(String email, String displayName, String authProvider) {}
-    public record UpdateUserRequest(String displayName) {}
-    public record UserResponse(String id, String email, String displayName) {}
+    public record UpdateUserRequest(String displayName, String phoneNumber) {}
+    public record UserResponse(String id, String email, String displayName, String phoneNumber) {}
 
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId().toString(),
                 user.getEmail(),
-                user.getDisplayName()
+                user.getDisplayName(),
+                user.getPhoneNumber()
         );
     }
 
@@ -75,6 +76,10 @@ public class UserController {
                 .<ResponseEntity<?>>map(user -> {
                     if (req.displayName() != null && !req.displayName().isBlank()) {
                         user.setDisplayName(req.displayName().trim());
+                    }
+                    if (req.phoneNumber() != null) {
+                        String phone = req.phoneNumber().trim();
+                        user.setPhoneNumber(phone.isEmpty() ? null : phone);
                     }
                     return ResponseEntity.ok(toResponse(userRepository.save(user)));
                 })
