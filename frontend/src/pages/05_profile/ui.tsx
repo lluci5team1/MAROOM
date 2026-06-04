@@ -15,14 +15,6 @@ import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
 import { fetchUser } from "../../entities/user/api";
 
-/** Base64 profile photos from edit-profile can be huge; never feed them to Image or loggers. */
-function safeProfileImageUrl(url: string | undefined | null): string | null {
-  if (!url || url.length === 0) return null;
-  if (url.startsWith("data:") && url.length > 120_000) return null;
-  if (!url.startsWith("http") && !url.startsWith("data:")) return null;
-  return url;
-}
-
 export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -45,7 +37,8 @@ export function ProfilePage() {
           if (cancelled) return;
           setDisplayName(user.displayName ?? "");
           setEmail(user.email ?? "");
-          setProfilePictureUrl(safeProfileImageUrl(user.profilePictureUrl));
+          const url = user.profilePictureUrl;
+          setProfilePictureUrl(url && url.length > 0 ? url : null);
         } catch {}
       })();
     });

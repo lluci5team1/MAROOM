@@ -4,7 +4,6 @@ import type { ExpoConfig } from "expo/config";
 const config: ExpoConfig = {
   name: "maroom-app",
   slug: "maroom-app",
-  owner: "peihengjun",
   version: "1.0.0",
 
   orientation: "portrait",
@@ -15,7 +14,6 @@ const config: ExpoConfig = {
 
   userInterfaceStyle: "automatic",
 
-  // Required by react-native-reanimated 4.x (pod install fails if false).
   newArchEnabled: true,
 
   platforms: ["ios", "android", "web"],
@@ -23,7 +21,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.maroom.app",
-    buildNumber: "2",
+    buildNumber: "1",
     infoPlist: {
       CFBundleURLTypes: [
         {
@@ -74,7 +72,7 @@ const config: ExpoConfig = {
   ],
 
   updates: {
-    url: "https://u.expo.dev/ee399f93-31d0-4b68-bf47-9e448a53f1c4",
+    url: "https://u.expo.dev/eb25df79-2047-4a65-8813-59469ea1dcef",
   },
 
   runtimeVersion: {
@@ -87,7 +85,7 @@ const config: ExpoConfig = {
   },
   extra: {
     eas: {
-      projectId: "ee399f93-31d0-4b68-bf47-9e448a53f1c4",
+      projectId: "eb25df79-2047-4a65-8813-59469ea1dcef",
     },
     router: {
       root: "src/app",

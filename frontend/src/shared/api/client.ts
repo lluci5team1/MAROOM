@@ -26,23 +26,13 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-function safeLogPayload(data: unknown): string {
-  try {
-    const raw = JSON.stringify(data, (_key, value) => {
-      if (typeof value === "string" && value.length > 500) {
-        return `${value.slice(0, 120)}…[truncated ${value.length} chars]`;
-      }
-      return value;
-    });
-    return raw.length > 4000 ? `${raw.slice(0, 4000)}…[truncated]` : raw;
-  } catch {
-    return "[unserializable]";
-  }
-}
-
 apiClient.interceptors.response.use(
   (response) => {
-    console.log("[API RESPONSE]", response.status, safeLogPayload(response.data));
+    console.log(
+      "[API RESPONSE]",
+      response.status,
+      JSON.stringify(response.data),
+    );
     return response;
   },
   async (error) => {
