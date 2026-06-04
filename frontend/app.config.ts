@@ -23,7 +23,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.maroom.app",
-    buildNumber: "2",
+    buildNumber: "3",
     infoPlist: {
       CFBundleURLTypes: [
         {

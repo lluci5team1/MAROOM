@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,22 +6,28 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { getUserId } from "../../shared/api/token";
 import { fetchUser, updateUserProfile } from "../../entities/user/api";
+import {
+  safeImageUri,
+  safeProfileAvatarUrl,
+  safeProfilePicturePayload,
+} from "../../shared/utils/safeImageUri";
 
 export function EditProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [profilePictureUri, setProfilePictureUri] = useState<string | null>(null);
+  const [displayUri, setDisplayUri] = useState<string | null>(null);
+  const pendingPictureRef = useRef<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,7 +39,8 @@ export function EditProfilePage() {
           const user = await fetchUser(id);
           setFullName(user.displayName);
           setEmail(user.email);
-          if (user.profilePictureUrl) setProfilePictureUri(user.profilePictureUrl);
+          setDisplayUri(safeProfileAvatarUrl(user.profilePictureUrl));
+          pendingPictureRef.current = undefined;
         }
       } catch {}
     }
@@ -51,14 +58,22 @@ export function EditProfilePage() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.4,
+      quality: 0.3,
       base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      const dataUri = `data:image/jpeg;base64,${asset.base64}`;
-      setProfilePictureUri(dataUri);
+      setDisplayUri(safeImageUri(asset.uri));
+      const payload = asset.base64
+        ? safeProfilePicturePayload(`data:image/jpeg;base64,${asset.base64}`)
+        : undefined;
+      if (asset.base64 && !payload) {
+        Alert.alert("Photo too large", "Please choose a smaller image.");
+        pendingPictureRef.current = undefined;
+        return;
+      }
+      pendingPictureRef.current = payload;
     }
   };
 
@@ -68,7 +83,9 @@ export function EditProfilePage() {
     try {
       await updateUserProfile(userId, {
         displayName: fullName,
-        profilePictureUrl: profilePictureUri ?? undefined,
+        ...(pendingPictureRef.current !== undefined
+          ? { profilePictureUrl: pendingPictureRef.current }
+          : {}),
       });
       router.back();
     } catch {
@@ -93,8 +110,8 @@ export function EditProfilePage() {
       >
         {/* Profile picture picker */}
         <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickImage} activeOpacity={0.8}>
-          {profilePictureUri ? (
-            <Image source={{ uri: profilePictureUri }} style={styles.avatar} />
+          {displayUri ? (
+            <Image source={{ uri: displayUri }} style={styles.avatar} contentFit="cover" />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Ionicons name="person" size={60} color="#9BAAB8" />
