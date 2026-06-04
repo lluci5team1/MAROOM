@@ -113,7 +113,7 @@ MAROOM_EMBEDDINGS_ENABLED=true
 │       └── shared/          # API client, config, reusable UI
 ├── backend/                 # Spring Boot API
 │   └── src/main/java/com/maroom/maroom/
-│       ├── controller/      # 11 REST controllers
+│       ├── controller/      # 10 REST controllers
 │       ├── service/         # Auth, recommendations, embeddings, SERP import
 │       ├── repository/      # Spring Data JPA
 │       ├── domain/          # Entities: User, FurnitureItem, SwipeEvent, Preference…
