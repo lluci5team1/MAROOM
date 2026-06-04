@@ -13,7 +13,7 @@ import { Image } from "expo-image";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { getUserId, saveProfileCache } from "../../shared/api/token";
+import { getUserId } from "../../shared/api/token";
 import { fetchUser, updateUserProfile } from "../../entities/user/api";
 import {
   safeImageUri,
@@ -87,7 +87,6 @@ export function EditProfilePage() {
           ? { profilePictureUrl: pendingPictureRef.current }
           : {}),
       });
-      await saveProfileCache({ displayName: fullName, email });
       router.back();
     } catch {
       Alert.alert("Error", "Failed to save changes. Please try again.");

@@ -38,10 +38,6 @@ export default function SignupScreen() {
       const res = await signup({ email, password, displayName });
       await saveToken(res.token);
       await saveUserId(res.userId);
-      await saveProfileCache({
-        displayName: res.displayName ?? displayName,
-        email: res.email ?? email,
-      });
       router.replace("/onboarding");
     } catch (err: any) {
       const message =

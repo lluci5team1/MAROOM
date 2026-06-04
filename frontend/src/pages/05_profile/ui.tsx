@@ -6,34 +6,45 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
+  InteractionManager,
 } from "react-native";
+import { Image } from "expo-image";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  removeToken,
-  removeUserId,
-  getProfileCache,
-  clearProfileCache,
-} from "../../shared/api/token";
+import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
+import { fetchUser } from "../../entities/user/api";
+import { safeProfileAvatarUrl } from "../../shared/utils/safeImageUri";
 
 export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
-  // Read cached profile only — never call GET /users/{id} here. That endpoint
-  // previously returned multi-MB base64 strings which crashed Hermes on iOS
-  // Release when axios parsed/logged the response (TurboModule → NSException).
+  // Load profile after the tab transition finishes. Do NOT use
+  // `useFocusEffect` from expo-router — TestFlight crashes (NO_CRASH_STACK on
+  // the RN JS thread) matched that hook + New Architecture on first Profile
+  // focus. Slot unmounts this screen when leaving the tab, so a mount-only
+  // effect also runs again when returning from /edit-profile.
   useEffect(() => {
     let cancelled = false;
-    getProfileCache().then((cached) => {
-      if (cancelled || !cached) return;
-      setDisplayName(cached.displayName);
-      setEmail(cached.email);
+    const task = InteractionManager.runAfterInteractions(() => {
+      (async () => {
+        try {
+          const userId = await getUserId();
+          if (!userId || cancelled) return;
+          const user = await fetchUser(userId);
+          if (cancelled) return;
+          setDisplayName(user.displayName ?? "");
+          setEmail(user.email ?? "");
+          setProfilePictureUrl(safeProfileAvatarUrl(user.profilePictureUrl));
+        } catch {}
+      })();
     });
     return () => {
       cancelled = true;
+      task.cancel();
     };
   }, []);
 
@@ -43,20 +54,31 @@ export function ProfilePage() {
     } catch {}
     await removeToken();
     await removeUserId();
-    await clearProfileCache();
     router.replace("/login");
   };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
+        {/* Avatar */}
         <View style={styles.avatarWrapper}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={72} color="#9BAAB8" />
-          </View>
+          {profilePictureUrl ? (
+            <Image
+              source={{ uri: profilePictureUrl }}
+              style={styles.avatar}
+              contentFit="cover"
+              onError={() => setProfilePictureUrl(null)}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={72} color="#9BAAB8" />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.editBadge}
             onPress={() => router.push("/edit-profile" as any)}
@@ -65,9 +87,11 @@ export function ProfilePage() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.userName}>{displayName || "Profile"}</Text>
+        {/* User Info */}
+        <Text style={styles.userName}>{displayName}</Text>
         <Text style={styles.userEmail}>{email}</Text>
 
+        {/* Menu Cards */}
         <View style={styles.menuSection}>
           <MenuCard
             icon="user"
@@ -94,6 +118,8 @@ export function ProfilePage() {
         </View>
       </ScrollView>
 
+      {/* Logout sheet — plain overlay instead of RN <Modal>. Native Modal on
+          New Architecture + Hermes was implicated in Profile-tab crashes. */}
       {logoutVisible && (
         <View style={styles.logoutOverlay} pointerEvents="box-none">
           <Pressable
@@ -179,6 +205,15 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 20,
   },
+
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+
+  // Avatar
   avatarWrapper: {
     position: "relative",
     marginBottom: 20,
@@ -210,6 +245,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+
+  // User info
   userName: {
     fontSize: 26,
     fontFamily: "Poppins_700Bold",
@@ -222,6 +259,8 @@ const styles = StyleSheet.create({
     color: "#8A96A3",
     marginBottom: 36,
   },
+
+  // Menu
   menuSection: {
     width: "100%",
     gap: 14,
@@ -275,6 +314,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#1399E5",
   },
+
   logoutOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 100,
