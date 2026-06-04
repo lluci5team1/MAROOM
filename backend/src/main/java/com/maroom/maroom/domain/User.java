@@ -34,6 +34,8 @@ public class User {
 
     private String phoneNumber;
 
+    private String profilePictureUrl;
+
     protected User() {}
 
     public User(String email, String displayName, String authProvider, String passwordHash) {
@@ -55,7 +57,9 @@ public class User {
     public String getPasswordHash() { return passwordHash; }
     public Instant getCreatedAt() { return createdAt; }
     public String getPhoneNumber() { return phoneNumber; }
+    public String getProfilePictureUrl() { return profilePictureUrl; }
 
     public void setDisplayName(String displayName) { this.displayName = displayName; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
 }
