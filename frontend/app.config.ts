@@ -65,7 +65,7 @@ const config: ExpoConfig = {
   ],
 
   updates: {
-    url: "https://u.expo.dev/eb25df79-2047-4a65-8813-59469ea1dcef",
+    url: "https://u.expo.dev/ee399f93-31d0-4b68-bf47-9e448a53f1c4",
   },
 
   runtimeVersion: {
@@ -78,7 +78,7 @@ const config: ExpoConfig = {
   },
   extra: {
     eas: {
-      projectId: "eb25df79-2047-4a65-8813-59469ea1dcef",
+      projectId: "ee399f93-31d0-4b68-bf47-9e448a53f1c4",
     },
     router: {
       root: "src/app",
