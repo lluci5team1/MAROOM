@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { getUserId } from "../../shared/api/token";
 import { fetchUser, updateUserProfile } from "../../entities/user/api";
@@ -21,21 +22,32 @@ export function EditProfilePage() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const id = await getUserId();
-        setUserId(id);
-        if (id) {
-          const user = await fetchUser(id);
-          setFullName(user.displayName);
-          setEmail(user.email);
-          setPhone(user.phoneNumber ?? "");
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const id = await getUserId();
+          if (cancelled) return;
+          setUserId(id);
+          if (id) {
+            const user = await fetchUser(id);
+            if (cancelled) return;
+            setFullName(user.displayName);
+            setEmail(user.email);
+            setPhone(user.phoneNumber ?? "");
+          }
+        } catch {
+          if (!cancelled) {
+            Alert.alert("Error", "Failed to load profile. Please try again.");
+          }
         }
-      } catch {}
-    }
-    load();
-  }, []);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
 
   const handleSave = async () => {
     if (!userId) return;
