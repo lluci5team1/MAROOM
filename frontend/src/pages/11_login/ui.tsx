@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -19,58 +19,26 @@ import { login, googleLogin } from "../../entities/user/api";
 import { saveToken, saveUserId, saveOnboardingFlag } from "../../shared/api/token";
 import { s, vs, ms } from "../../shared/utils/scale";
 
-WebBrowser.maybeCompleteAuthSession();
-
-const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!
+const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: IOS_CLIENT_ID,
-    scopes: ["openid", "profile", "email"],
-  });
-
-  useEffect(() => {
-    if (response?.type === "success") {
-      const idToken = response.authentication?.idToken;
-      if (idToken) {
-        handleGoogleToken(idToken);
-      } else {
-        Alert.alert("Google Sign-In Error", "Could not retrieve ID token.");
-        setGoogleLoading(false);
-      }
-    } else if (response?.type === "error") {
-      Alert.alert("Google Sign-In Error", response.error?.message ?? "Unknown error");
-      setGoogleLoading(false);
-    } else if (response?.type === "dismiss") {
-      setGoogleLoading(false);
+  const handleGoogleToken = useCallback(async (idToken: string) => {
+    const res = await googleLogin(idToken);
+    await saveToken(res.token);
+    await saveUserId(res.userId);
+    await saveOnboardingFlag(res.hasCompletedOnboarding);
+    if (res.hasCompletedOnboarding) {
+      router.replace("/home");
+    } else {
+      router.replace("/onboarding");
     }
-  }, [response]);
-
-  const handleGoogleToken = async (idToken: string) => {
-    try {
-      const res = await googleLogin(idToken);
-      await saveToken(res.token);
-      await saveUserId(res.userId);
-      await saveOnboardingFlag(res.hasCompletedOnboarding);
-      if (res.hasCompletedOnboarding) {
-        router.replace("/home");
-      } else {
-        router.replace("/onboarding");
-      }
-    } catch (err: any) {
-      const message = err?.response?.data?.message ?? "Google login failed. Please try again.";
-      Alert.alert("Google Login Error", message);
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+  }, [router]);
 
   const handleLogin = async () => {
     if (!agree) {
@@ -164,23 +132,17 @@ export default function LoginScreen() {
           <View style={styles.line} />
         </View>
 
-        <TouchableOpacity
-          style={[styles.socialButton, (googleLoading || !request) && { opacity: 0.6 }]}
-          disabled={googleLoading || !request}
-          onPress={() => {
-            setGoogleLoading(true);
-            promptAsync();
-          }}
-        >
-          {googleLoading ? (
-            <ActivityIndicator size="small" color="#1F2937" />
-          ) : (
-            <>
-              <Image source={icons.google} style={{ width: 18, height: 18 }} />
-              <Text style={styles.socialText}>Continue with Google</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {IOS_CLIENT_ID ? (
+          <GoogleSignInButton
+            iosClientId={IOS_CLIENT_ID}
+            onGoogleToken={handleGoogleToken}
+          />
+        ) : (
+          <TouchableOpacity style={[styles.socialButton, { opacity: 0.6 }]} disabled>
+            <Image source={icons.google} style={{ width: 18, height: 18 }} />
+            <Text style={styles.socialText}>Continue with Google</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Contact</Text>
@@ -191,6 +153,71 @@ export default function LoginScreen() {
         </View>
       </View>
     </SafeAreaView>
+  );
+}
+
+function GoogleSignInButton({
+  iosClientId,
+  onGoogleToken,
+}: {
+  iosClientId: string;
+  onGoogleToken: (idToken: string) => Promise<void>;
+}) {
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    iosClientId,
+    scopes: ["openid", "profile", "email"],
+  });
+
+  useEffect(() => {
+    WebBrowser.maybeCompleteAuthSession();
+  }, []);
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const idToken = response.authentication?.idToken;
+      if (idToken) {
+        void (async () => {
+          try {
+            await onGoogleToken(idToken);
+          } catch (err: any) {
+            const message =
+              err?.response?.data?.message ?? "Google login failed. Please try again.";
+            Alert.alert("Google Login Error", message);
+          } finally {
+            setGoogleLoading(false);
+          }
+        })();
+      } else {
+        Alert.alert("Google Sign-In Error", "Could not retrieve ID token.");
+        setGoogleLoading(false);
+      }
+    } else if (response?.type === "error") {
+      Alert.alert("Google Sign-In Error", response.error?.message ?? "Unknown error");
+      setGoogleLoading(false);
+    } else if (response?.type === "dismiss") {
+      setGoogleLoading(false);
+    }
+  }, [response, onGoogleToken]);
+
+  return (
+    <TouchableOpacity
+      style={[styles.socialButton, (googleLoading || !request) && { opacity: 0.6 }]}
+      disabled={googleLoading || !request}
+      onPress={() => {
+        setGoogleLoading(true);
+        void promptAsync();
+      }}
+    >
+      {googleLoading ? (
+        <ActivityIndicator size="small" color="#1F2937" />
+      ) : (
+        <>
+          <Image source={icons.google} style={{ width: 18, height: 18 }} />
+          <Text style={styles.socialText}>Continue with Google</Text>
+        </>
+      )}
+    </TouchableOpacity>
   );
 }
 

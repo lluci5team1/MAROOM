@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,9 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  InteractionManager,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { getUserId } from "../../shared/api/token";
 import { fetchUser, updateUserProfile } from "../../entities/user/api";
@@ -22,10 +22,10 @@ export function EditProfilePage() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      (async () => {
+  useEffect(() => {
+    let cancelled = false;
+    const task = InteractionManager.runAfterInteractions(() => {
+      void (async () => {
         try {
           const id = await getUserId();
           if (cancelled) return;
@@ -43,11 +43,13 @@ export function EditProfilePage() {
           }
         }
       })();
-      return () => {
-        cancelled = true;
-      };
-    }, [])
-  );
+    });
+
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!userId) return;

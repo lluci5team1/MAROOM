@@ -21,7 +21,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.maroom.app",
-    buildNumber: "12",
+    buildNumber: "25",
     infoPlist: {
       CFBundleURLTypes: [
         {
@@ -64,21 +64,13 @@ const config: ExpoConfig = {
     ],
   ],
 
-  updates: {
-    url: "https://u.expo.dev/ee399f93-31d0-4b68-bf47-9e448a53f1c4",
-  },
-
-  runtimeVersion: {
-    policy: "appVersion",
-  },
-
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
   },
   extra: {
     eas: {
-      projectId: "ee399f93-31d0-4b68-bf47-9e448a53f1c4",
+      projectId: "cd2161f5-ca50-4bbf-8db7-23e8433914ca",
     },
     router: {
       root: "src/app",

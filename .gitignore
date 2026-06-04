@@ -48,4 +48,5 @@ target/
 *.class
 
 
-.idea
+/.idea
+/.claude

@@ -7,16 +7,20 @@ import { getToken, getOnboardingFlag } from "../../shared/api/token";
 export function SplashPage() {
   useEffect(() => {
     const timer = setTimeout(async () => {
-      const token = await getToken();
-      if (!token) {
+      try {
+        const token = await getToken();
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+        const hasCompletedOnboarding = await getOnboardingFlag();
+        if (hasCompletedOnboarding) {
+          router.replace("/home");
+        } else {
+          router.replace("/onboarding");
+        }
+      } catch {
         router.replace("/login");
-        return;
-      }
-      const hasCompletedOnboarding = await getOnboardingFlag();
-      if (hasCompletedOnboarding) {
-        router.replace("/home");
-      } else {
-        router.replace("/onboarding");
       }
     }, 3000);
 
