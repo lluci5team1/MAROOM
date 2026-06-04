@@ -18,14 +18,11 @@ import java.util.UUID;
 @Service
 public class ProfilePictureService {
 
-    private static final long MAX_BYTES = 5 * 1024 * 1024;
+    private static final long MAX_BYTES = 2 * 1024 * 1024;
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
-            "image/jpg",
             "image/png",
-            "image/webp",
-            "image/heic",
-            "image/heif"
+            "image/webp"
     );
 
     private final UserRepository userRepository;
@@ -52,12 +49,12 @@ public class ProfilePictureService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image file is required");
         }
         if (file.getSize() > MAX_BYTES) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image must be 5MB or smaller");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image must be 2MB or smaller");
         }
 
-        String contentType = normalizeContentType(file.getContentType(), file.getOriginalFilename());
-        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only JPEG, PNG, WebP, or HEIC images are allowed");
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only JPEG, PNG, or WebP images are allowed");
         }
 
         byte[] bytes;
@@ -112,24 +109,5 @@ public class ProfilePictureService {
             return trimmed;
         }
         return null;
-    }
-
-    private static String normalizeContentType(String contentType, String filename) {
-        if (contentType != null && !contentType.isBlank()) {
-            String normalized = contentType.toLowerCase().split(";")[0].trim();
-            if (ALLOWED_CONTENT_TYPES.contains(normalized)) {
-                return normalized;
-            }
-        }
-        if (filename == null) {
-            return "";
-        }
-        String lower = filename.toLowerCase();
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".webp")) return "image/webp";
-        if (lower.endsWith(".heic")) return "image/heic";
-        if (lower.endsWith(".heif")) return "image/heif";
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        return contentType == null ? "" : contentType.toLowerCase();
     }
 }

@@ -80,25 +80,19 @@ export function ProfilePage() {
       });
       if (result.canceled || !result.assets[0]?.uri) return;
 
-      const asset = result.assets[0];
-
       const userId = await getUserId();
       if (!userId) return;
 
       setUploadingPhoto(true);
       const { profilePictureUrl: url } = await uploadProfilePicture(
         userId,
-        asset.uri,
-        asset.mimeType,
-        asset.fileName
+        result.assets[0].uri
       );
       if (isSafeProfilePictureUrl(url)) {
         setProfilePictureUrl(url);
       }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to upload profile picture.";
-      Alert.alert("Upload failed", message);
+    } catch {
+      Alert.alert("Error", "Failed to upload profile picture. Please try again.");
     } finally {
       setUploadingPhoto(false);
     }
