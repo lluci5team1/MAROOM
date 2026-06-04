@@ -51,12 +51,6 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-web-browser",
     [
-      "expo-image-picker",
-      {
-        photosPermission: "Allow MAROOM to access your photos to set a profile picture.",
-      },
-    ],
-    [
       "expo-splash-screen",
       {
         image: "./src/shared/assets/splash-icon.png",

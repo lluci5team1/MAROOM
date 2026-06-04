@@ -7,27 +7,17 @@ import {
   Pressable,
   ScrollView,
   InteractionManager,
-  Alert,
-  ActivityIndicator,
 } from "react-native";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
-import {
-  fetchUser,
-  uploadProfilePicture,
-  isSafeProfilePictureUrl,
-} from "../../entities/user/api";
+import { fetchUser } from "../../entities/user/api";
 
 export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Load profile after the tab transition finishes. Do NOT use
   // `useFocusEffect` from expo-router — TestFlight crashes (NO_CRASH_STACK on
@@ -45,11 +35,6 @@ export function ProfilePage() {
           if (cancelled) return;
           setDisplayName(user.displayName ?? "");
           setEmail(user.email ?? "");
-          setProfilePictureUrl(
-            isSafeProfilePictureUrl(user.profilePictureUrl)
-              ? user.profilePictureUrl
-              : null
-          );
         } catch {}
       })();
     });
@@ -58,45 +43,6 @@ export function ProfilePage() {
       task.cancel();
     };
   }, []);
-
-  const handleChangePhoto = async () => {
-    if (uploadingPhoto) return;
-
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          "Permission needed",
-          "Allow photo library access to set a profile picture."
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets[0]?.uri) return;
-
-      const userId = await getUserId();
-      if (!userId) return;
-
-      setUploadingPhoto(true);
-      const { profilePictureUrl: url } = await uploadProfilePicture(
-        userId,
-        result.assets[0].uri
-      );
-      if (isSafeProfilePictureUrl(url)) {
-        setProfilePictureUrl(url);
-      }
-    } catch {
-      Alert.alert("Error", "Failed to upload profile picture. Please try again.");
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -117,23 +63,14 @@ export function ProfilePage() {
       >
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
-          {isSafeProfilePictureUrl(profilePictureUrl) ? (
-            <Image source={{ uri: profilePictureUrl }} style={styles.avatar} contentFit="cover" />
-          ) : (
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={72} color="#9BAAB8" />
-            </View>
-          )}
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={72} color="#9BAAB8" />
+          </View>
           <TouchableOpacity
             style={styles.editBadge}
-            onPress={handleChangePhoto}
-            disabled={uploadingPhoto}
+            onPress={() => router.push("/edit-profile" as any)}
           >
-            {uploadingPhoto ? (
-              <ActivityIndicator size="small" color="#1399E5" />
-            ) : (
-              <Feather name="edit-2" size={13} color="#1399E5" />
-            )}
+            <Feather name="edit-2" size={13} color="#1399E5" />
           </TouchableOpacity>
         </View>
 

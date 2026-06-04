@@ -38,13 +38,6 @@ export interface UserProfile {
   email: string;
   displayName: string;
   phoneNumber?: string | null;
-  profilePictureUrl?: string | null;
-}
-
-export function isSafeProfilePictureUrl(url?: string | null): url is string {
-  if (!url) return false;
-  const trimmed = url.trim();
-  return /^https?:\/\//i.test(trimmed) && !trimmed.startsWith("data:");
 }
 
 export async function fetchUser(userId: string): Promise<UserProfile> {
@@ -57,31 +50,5 @@ export async function updateUserProfile(
   data: { displayName?: string; phoneNumber?: string }
 ): Promise<UserProfile> {
   const res = await apiClient.patch(`/users/${userId}`, data);
-  return res.data;
-}
-
-export async function uploadProfilePicture(
-  userId: string,
-  localUri: string
-): Promise<{ profilePictureUrl: string }> {
-  const filename = localUri.split("/").pop() ?? "profile.jpg";
-  const match = /\.(\w+)$/.exec(filename);
-  const ext = match?.[1]?.toLowerCase();
-  const type =
-    ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-
-  const form = new FormData();
-  form.append(
-    "file",
-    {
-      uri: localUri,
-      name: filename.includes(".") ? filename : "profile.jpg",
-      type,
-    } as unknown as Blob
-  );
-
-  const res = await apiClient.post(`/users/${userId}/profile-picture`, form, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
   return res.data;
 }

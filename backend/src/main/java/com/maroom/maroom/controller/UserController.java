@@ -2,7 +2,6 @@ package com.maroom.maroom.controller;
 
 import com.maroom.maroom.domain.User;
 import com.maroom.maroom.repository.UserRepository;
-import com.maroom.maroom.service.ProfilePictureService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,15 +20,14 @@ public class UserController {
 
     public record CreateUserRequest(String email, String displayName, String authProvider) {}
     public record UpdateUserRequest(String displayName, String phoneNumber) {}
-    public record UserResponse(String id, String email, String displayName, String phoneNumber, String profilePictureUrl) {}
+    public record UserResponse(String id, String email, String displayName, String phoneNumber) {}
 
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId().toString(),
                 user.getEmail(),
                 user.getDisplayName(),
-                user.getPhoneNumber(),
-                ProfilePictureService.safeProfilePictureUrl(user.getProfilePictureUrl())
+                user.getPhoneNumber()
         );
     }
 
