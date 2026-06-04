@@ -6,13 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
 import { getUserId } from "../../shared/api/token";
 import { fetchUser, updateUserProfile } from "../../entities/user/api";
 
@@ -21,7 +19,6 @@ export function EditProfilePage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [profilePictureUri, setProfilePictureUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,43 +30,17 @@ export function EditProfilePage() {
           const user = await fetchUser(id);
           setFullName(user.displayName);
           setEmail(user.email);
-          if (user.profilePictureUrl) setProfilePictureUri(user.profilePictureUrl);
         }
       } catch {}
     }
     load();
   }, []);
 
-  const handlePickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission required", "Please allow access to your photo library.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.4,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const dataUri = `data:image/jpeg;base64,${asset.base64}`;
-      setProfilePictureUri(dataUri);
-    }
-  };
-
   const handleSave = async () => {
     if (!userId) return;
     setSaving(true);
     try {
-      await updateUserProfile(userId, {
-        displayName: fullName,
-        profilePictureUrl: profilePictureUri ?? undefined,
-      });
+      await updateUserProfile(userId, { displayName: fullName });
       router.back();
     } catch {
       Alert.alert("Error", "Failed to save changes. Please try again.");
@@ -91,22 +62,6 @@ export function EditProfilePage() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Profile picture picker */}
-        <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickImage} activeOpacity={0.8}>
-          {profilePictureUri ? (
-            <Image source={{ uri: profilePictureUri }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={60} color="#9BAAB8" />
-            </View>
-          )}
-          <View style={styles.cameraButton}>
-            <Feather name="camera" size={16} color="#fff" />
-          </View>
-        </TouchableOpacity>
-
-        <Text style={styles.changePhotoLabel}>Tap to change photo</Text>
-
         <InputCard label="FULL NAME" icon="user" value={fullName} onChangeText={setFullName} />
         <InputCard
           label="EMAIL ADDRESS"
@@ -196,40 +151,10 @@ const styles = StyleSheet.create({
   backButton: { padding: 4 },
   headerTitle: { fontSize: 20, fontFamily: "Poppins_600SemiBold", color: "#14233C" },
   content: {
-    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 24,
     gap: 24,
-  },
-  avatarWrapper: { position: "relative" },
-  avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#E4EAEF" },
-  avatarPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#E4EAEF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cameraButton: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#00ADEF",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FDFDFD",
-  },
-  changePhotoLabel: {
-    fontSize: 13,
-    fontFamily: "Poppins_400Regular",
-    color: "#8A96A3",
-    marginTop: -16,
   },
   fieldGroup: { gap: 8, width: "100%" },
   fieldLabel: {

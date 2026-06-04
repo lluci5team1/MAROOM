@@ -37,7 +37,6 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName: string;
-  profilePictureUrl?: string;
 }
 
 export async function fetchUser(userId: string): Promise<UserProfile> {
@@ -47,7 +46,7 @@ export async function fetchUser(userId: string): Promise<UserProfile> {
 
 export async function updateUserProfile(
   userId: string,
-  data: { displayName?: string; profilePictureUrl?: string }
+  data: { displayName?: string }
 ): Promise<UserProfile> {
   const res = await apiClient.patch(`/users/${userId}`, data);
   return res.data;

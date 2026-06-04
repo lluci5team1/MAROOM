@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
-  Image,
   InteractionManager,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -19,7 +18,6 @@ export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
   // Load profile after the tab transition finishes. Do NOT use
   // `useFocusEffect` from expo-router — TestFlight crashes (NO_CRASH_STACK on
@@ -37,8 +35,6 @@ export function ProfilePage() {
           if (cancelled) return;
           setDisplayName(user.displayName ?? "");
           setEmail(user.email ?? "");
-          const url = user.profilePictureUrl;
-          setProfilePictureUrl(url && url.length > 0 ? url : null);
         } catch {}
       })();
     });
@@ -67,13 +63,9 @@ export function ProfilePage() {
       >
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
-          {profilePictureUrl ? (
-            <Image source={{ uri: profilePictureUrl }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={72} color="#9BAAB8" />
-            </View>
-          )}
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={72} color="#9BAAB8" />
+          </View>
           <TouchableOpacity
             style={styles.editBadge}
             onPress={() => router.push("/edit-profile" as any)}

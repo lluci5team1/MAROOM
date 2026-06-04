@@ -19,15 +19,14 @@ public class UserController {
     }
 
     public record CreateUserRequest(String email, String displayName, String authProvider) {}
-    public record UpdateUserRequest(String displayName, String profilePictureUrl) {}
-    public record UserResponse(String id, String email, String displayName, String profilePictureUrl) {}
+    public record UpdateUserRequest(String displayName) {}
+    public record UserResponse(String id, String email, String displayName) {}
 
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId().toString(),
                 user.getEmail(),
-                user.getDisplayName(),
-                user.getProfilePictureUrl()
+                user.getDisplayName()
         );
     }
 
@@ -76,9 +75,6 @@ public class UserController {
                 .<ResponseEntity<?>>map(user -> {
                     if (req.displayName() != null && !req.displayName().isBlank()) {
                         user.setDisplayName(req.displayName().trim());
-                    }
-                    if (req.profilePictureUrl() != null) {
-                        user.setProfilePictureUrl(req.profilePictureUrl());
                     }
                     return ResponseEntity.ok(toResponse(userRepository.save(user)));
                 })
