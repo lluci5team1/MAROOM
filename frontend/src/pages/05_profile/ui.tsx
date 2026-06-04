@@ -6,15 +6,22 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
+  Image,
   InteractionManager,
 } from "react-native";
-import { Image } from "expo-image";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { removeToken, removeUserId, getUserId } from "../../shared/api/token";
 import { apiClient } from "../../shared/api/client";
 import { fetchUser } from "../../entities/user/api";
-import { safeProfileAvatarUrl } from "../../shared/utils/safeImageUri";
+
+/** Base64 profile photos from edit-profile can be huge; never feed them to Image or loggers. */
+function safeProfileImageUrl(url: string | undefined | null): string | null {
+  if (!url || url.length === 0) return null;
+  if (url.startsWith("data:") && url.length > 120_000) return null;
+  if (!url.startsWith("http") && !url.startsWith("data:")) return null;
+  return url;
+}
 
 export function ProfilePage() {
   const [logoutVisible, setLogoutVisible] = useState(false);
@@ -38,7 +45,7 @@ export function ProfilePage() {
           if (cancelled) return;
           setDisplayName(user.displayName ?? "");
           setEmail(user.email ?? "");
-          setProfilePictureUrl(safeProfileAvatarUrl(user.profilePictureUrl));
+          setProfilePictureUrl(safeProfileImageUrl(user.profilePictureUrl));
         } catch {}
       })();
     });
@@ -68,12 +75,7 @@ export function ProfilePage() {
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
           {profilePictureUrl ? (
-            <Image
-              source={{ uri: profilePictureUrl }}
-              style={styles.avatar}
-              contentFit="cover"
-              onError={() => setProfilePictureUrl(null)}
-            />
+            <Image source={{ uri: profilePictureUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatar}>
               <Ionicons name="person" size={72} color="#9BAAB8" />

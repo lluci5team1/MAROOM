@@ -23,16 +23,11 @@ public class UserController {
     public record UserResponse(String id, String email, String displayName, String profilePictureUrl) {}
 
     private UserResponse toResponse(User user) {
-        String pic = user.getProfilePictureUrl();
-        // Inline base64 avatars crash iOS React Native Release builds when rendered.
-        if (pic != null && pic.startsWith("data:")) {
-            pic = null;
-        }
         return new UserResponse(
                 user.getId().toString(),
                 user.getEmail(),
                 user.getDisplayName(),
-                pic
+                user.getProfilePictureUrl()
         );
     }
 
@@ -83,12 +78,7 @@ public class UserController {
                         user.setDisplayName(req.displayName().trim());
                     }
                     if (req.profilePictureUrl() != null) {
-                        String pic = req.profilePictureUrl().trim();
-                        if (pic.startsWith("data:") && pic.length() <= 80_000) {
-                            user.setProfilePictureUrl(pic);
-                        } else if (pic.startsWith("http://") || pic.startsWith("https://")) {
-                            user.setProfilePictureUrl(pic);
-                        }
+                        user.setProfilePictureUrl(req.profilePictureUrl());
                     }
                     return ResponseEntity.ok(toResponse(userRepository.save(user)));
                 })

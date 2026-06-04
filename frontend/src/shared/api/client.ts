@@ -12,6 +12,20 @@ export const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  console.log(
+    "[API REQUEST]",
+    config.method?.toUpperCase(),
+    (config.baseURL ?? "") + (config.url ?? ""),
+    JSON.stringify(config.data),
+  );
+  return config;
+});
+
 function safeLogPayload(data: unknown): string {
   try {
     const raw = JSON.stringify(data, (_key, value) => {
@@ -25,20 +39,6 @@ function safeLogPayload(data: unknown): string {
     return "[unserializable]";
   }
 }
-
-apiClient.interceptors.request.use(async (config) => {
-  const token = await getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  console.log(
-    "[API REQUEST]",
-    config.method?.toUpperCase(),
-    (config.baseURL ?? "") + (config.url ?? ""),
-    config.data != null ? safeLogPayload(config.data) : "",
-  );
-  return config;
-});
 
 apiClient.interceptors.response.use(
   (response) => {

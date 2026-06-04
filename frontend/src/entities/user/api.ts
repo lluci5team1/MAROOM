@@ -42,12 +42,7 @@ export interface UserProfile {
 
 export async function fetchUser(userId: string): Promise<UserProfile> {
   const res = await apiClient.get(`/users/${userId}`);
-  const user = res.data as UserProfile;
-  // Never keep inline base64 in JS heap — it crashes Hermes + native Image on Profile tab.
-  if (user.profilePictureUrl?.startsWith("data:")) {
-    return { ...user, profilePictureUrl: undefined };
-  }
-  return user;
+  return res.data;
 }
 
 export async function updateUserProfile(
