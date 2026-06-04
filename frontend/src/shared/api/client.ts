@@ -5,6 +5,8 @@ import { getToken } from "./token";
 const RAILWAY_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://maroom-production.up.railway.app";
 const LOCAL_URL = "http://localhost:8080";
 
+export const API_BASE_URL = RAILWAY_URL;
+
 export const apiClient = axios.create({
   baseURL: RAILWAY_URL,
   headers: {
@@ -17,11 +19,14 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
   console.log(
     "[API REQUEST]",
     config.method?.toUpperCase(),
     (config.baseURL ?? "") + (config.url ?? ""),
-    JSON.stringify(config.data),
+    config.data instanceof FormData ? "[FormData]" : JSON.stringify(config.data),
   );
   return config;
 });

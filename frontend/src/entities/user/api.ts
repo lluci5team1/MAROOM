@@ -1,5 +1,6 @@
 // features/auth/api.ts
-import { apiClient } from "../../shared/api/client";
+import { apiClient, API_BASE_URL } from "../../shared/api/client";
+import { getToken } from "../../shared/api/token";
 
 export interface AuthResponse {
   token: string;
@@ -62,26 +63,55 @@ export async function updateUserProfile(
 
 export async function uploadProfilePicture(
   userId: string,
-  localUri: string
+  localUri: string,
+  mimeType?: string | null,
+  fileName?: string | null
 ): Promise<{ profilePictureUrl: string }> {
-  const filename = localUri.split("/").pop() ?? "profile.jpg";
-  const match = /\.(\w+)$/.exec(filename);
-  const ext = match?.[1]?.toLowerCase();
-  const type =
-    ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+  const type = mimeType?.toLowerCase() || "image/jpeg";
+  const name = fileName || "profile.jpg";
 
   const form = new FormData();
   form.append(
     "file",
     {
       uri: localUri,
-      name: filename.includes(".") ? filename : "profile.jpg",
+      name,
       type,
     } as unknown as Blob
   );
 
-  const res = await apiClient.post(`/users/${userId}/profile-picture`, form, {
-    headers: { "Content-Type": "multipart/form-data" },
+  const token = await getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  // fetch handles React Native multipart uploads reliably; axios often sends an empty file body.
+  let response = await fetch(`${API_BASE_URL}/users/${userId}/profile-picture`, {
+    method: "POST",
+    headers,
+    body: form,
   });
-  return res.data;
+
+  if (!response.ok && response.status >= 500) {
+    response = await fetch(`${LOCAL_URL}/users/${userId}/profile-picture`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+  }
+
+  const body = await response.text();
+  if (!response.ok) {
+    let message = `Upload failed (${response.status})`;
+    try {
+      const parsed = JSON.parse(body) as { error?: string; message?: string };
+      message = parsed.error ?? parsed.message ?? message;
+    } catch {
+      if (body) message = body;
+    }
+    throw new Error(message);
+  }
+
+  return JSON.parse(body) as { profilePictureUrl: string };
 }
